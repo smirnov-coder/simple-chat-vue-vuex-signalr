@@ -1,0 +1,32 @@
+@model IAuthResult
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Serialization
+@using System.Text.RegularExpressions
+@{
+    var message = new
+    {
+        source = "popup",
+        result = Model
+    };
+    string json = JsonConvert.SerializeObject(message, new JsonSerializerSettings
+    {
+        ContractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = new CamelCaseNamingStrategy()
+        }
+    });
+}
+<script type="text/javascript">
+    (function () {
+        if (window.opener) {
+            window.opener.postMessage(JSON.parse("@Html.Raw(EscapeQuotes(json))"));
+        }
+    })();
+</script>
+
+@functions {
+    string EscapeQuotes(string source)
+    {
+        return Regex.Replace(source, "\"", "\\\"");
+    }
+}

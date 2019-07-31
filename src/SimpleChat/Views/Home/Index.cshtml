@@ -1,0 +1,75 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration configuration
+@{ 
+    Layout = null;
+    string
+        protocol = Context?.Request?.Scheme,
+        host = Context?.Request?.Host.Value,
+        domain = $"{protocol}://{host}";
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Chat</title>
+    <link rel="apple-touch-icon" sizes="180x180" asp-href-include="~/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" asp-href-include="~/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" asp-href-include="~/favicon-16x16.png" />
+    <link rel="manifest" asp-href-include="~/site.webmanifest" />
+    @* Шрифт Roboto *@
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
+    <environment exclude="Development">
+        <link asp-href-exclude="~/css/vendor.bundle.min.css" />
+        <link asp-href-include="~/css/app.bundle.min.css" />
+    </environment>
+</head>
+<body>
+    <script type="text/javascript">
+        if (typeof window != "undefined" && !window.globals) {
+            window.globals = {
+                domain: "@domain",
+                Facebook: {
+                    clientId: "@configuration["Authentication:Facebook:AppId"]",
+                    redirectUri: "@Url?.Action("SignInWithFacebookAsync", "Auth", null, protocol, host)?.ToLower()",
+                    authorizeEndpoint: "https://www.facebook.com/v3.3/dialog/oauth",
+                    scope: "public_profile,email",
+                    state: "@ExternalProvider.Facebook",
+                },
+                VKontakte: {
+                    clientId: "@configuration["Authentication:VKontakte:ClientId"]",
+                    redirectUri: "@Url?.Action("SignInWithVKontakteAsync", "Auth", null, protocol, host)?.ToLower()",
+                    authorizeEndpoint: "https://oauth.vk.com/authorize",
+                    scope: "offline,email",
+                    state: "@Html.Raw(ExternalProvider.VKontakte)",
+                    apiVersion: "5.101"
+                },
+                LinkedIn: {
+                    clientId: "@configuration["Authentication:LinkedIn:ClientId"]",
+                    redirectUri: "@Url?.Action("SignInWithLinkedInAsync", "Auth", null, protocol, host)?.ToLower()",
+                    authorizeEndpoint: "https://www.linkedin.com/oauth/v2/authorization",
+                    scope: "r_liteprofile r_emailaddress",
+                    state: "@ExternalProvider.LinkedIn"
+                },
+                Odnoklassniki: {
+                    clientId: "@configuration["Authentication:Odnoklassniki:ApplicationId"]",
+                    redirectUri: "@Url?.Action("SignInWithOdnoklassnikiAsync", "Auth", null, protocol, host)?.ToLower()",
+                    authorizeEndpoint: "https://connect.ok.ru/oauth/authorize",
+                    scope: "VALUABLE_ACCESS;LONG_ACCESS_TOKEN;GET_EMAIL",
+                    state: "@Html.Raw(ExternalProvider.Odnoklassniki)",
+                }
+            };
+        }
+    </script>
+
+    <div id="app"></div>
+
+    <environment include="Development">
+        <script asp-src-include="~/js/vendor.bundle.js" asp-append-version="true" defer></script>
+        <script asp-src-include="~/js/app.bundle.js" asp-append-version="true" defer></script>
+    </environment>
+    <environment exclude="Development">
+        <script asp-src-include="~/js/vendor.bundle.min.js" defer></script>
+        <script asp-src-include="~/js/app.bundle.min.js" defer></script>
+    </environment>
+</body>
+</html>

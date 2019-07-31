@@ -1,0 +1,41 @@
+{
+  "name": "simple-group-chat",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development webpack --progress --colors",
+    "prod": "cross-env NODE_ENV=production webpack --progress --colors --hide-modules"
+  },
+  "dependencies": {
+    "vue": "2.6.10",
+    "vue-template-compiler": "2.6.10",
+    "vuex": "3.1.1",
+    "vuetify": "1.5.16",
+    "@aspnet/signalr": "1.1.4"
+  },
+  "devDependencies": {
+    "aspnet-webpack": "3.0.0",
+    "cross-env": "5.2.0",
+    "css-loader": "3.0.0",
+    "file-loader": "4.0.0",
+    "mini-css-extract-plugin": "0.7.0",
+    "optimize-css-assets-webpack-plugin": "5.0.1",
+    "url-loader": "2.0.0",
+    "vue-loader": "15.7.0",
+    "webpack": "4.34.0",
+    "webpack-cli": "3.3.4",
+    "webpack-hot-middleware": "2.25.0",
+    "webpack-dev-middleware": "3.7.0",
+    "copy-webpack-plugin": "5.0.3",
+    "clean-webpack-plugin": "3.0.0",
+    "webpack-bundle-analyzer": "3.3.2",
+    "@mdi/font": "3.8.95",
+    "faker": "4.1.0",
+    "@types/faker": "4.1.5",
+    "@babel/core": "7.4.5",
+    "@babel/preset-env": "7.4.5",
+    "@babel/polyfill": "7.4.4",
+    "babel-loader": "8.0.6",
+    "vue-style-loader": "4.1.2",
+    "uglifyjs-webpack-plugin": "2.1.3"
+  }
+}
