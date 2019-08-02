@@ -62,54 +62,24 @@ namespace SimpleChat.Controllers
                 var user = await _userManager.FindByNameAsync(User.Identity.Name);
                 if (user == null)
                     return new ErrorResult("Пользователь не найден.");
+
                 var userClaims = await _userManager.GetClaimsAsync(user);
                 string provider = User.FindFirstValue(CustomClaimTypes.Provider);
+                var providerData = PickUpProviderDependentData(provider);
+                if (string.IsNullOrWhiteSpace(providerData.Item1))
+                    return new NotAuthenticatedResult();
+
                 string
-                    nameClaimType = string.Empty,
-                    avatarClaimType = string.Empty,
-                    accessTokenClaimType = string.Empty;
-                IOAuth2Service oauth2Service = null;
-
-                switch (provider)
-                {
-                    case ExternalProvider.Facebook:
-                        nameClaimType = CustomClaimTypes.FacebookName;
-                        avatarClaimType = CustomClaimTypes.FacebookAvatar;
-                        accessTokenClaimType = CustomClaimTypes.FacebookAccessToken;
-                        oauth2Service = _facebook;
-                        break;
-
-                    case ExternalProvider.VKontakte:
-                        nameClaimType = CustomClaimTypes.VKontakteName;
-                        avatarClaimType = CustomClaimTypes.VKontakteAvatar;
-                        accessTokenClaimType = CustomClaimTypes.VKontakteAccessToken;
-                        oauth2Service = _vkontakte;
-                        break;
-
-                    case ExternalProvider.LinkedIn:
-                        nameClaimType = CustomClaimTypes.LinkedInName;
-                        avatarClaimType = CustomClaimTypes.LinkedInAvatar;
-                        accessTokenClaimType = CustomClaimTypes.LinkedInAccessToken;
-                        oauth2Service = _linkedIn;
-                        break;
-
-                    case ExternalProvider.Odnoklassniki:
-                        nameClaimType = CustomClaimTypes.OdnoklassnikiName;
-                        avatarClaimType = CustomClaimTypes.OdnoklassnikiAvatar;
-                        accessTokenClaimType = CustomClaimTypes.OdnoklassnikiAccessToken;
-                        oauth2Service = _odnoklassniki;
-                        break;
-
-                    default:
-                        return new NotAuthenticatedResult();
-                }
-
+                    nameClaimType = providerData.Item1,
+                    avatarClaimType = providerData.Item2,
+                    accessTokenClaimType = providerData.Item3;
+                IOAuth2Service oauth2Service = providerData.Item4;
                 try
                 {
-                    string accessToken = userClaims.FirstOrDefault(claim => claim.Type == accessTokenClaimType).Value;
-                    var userInfo = await oauth2Service.GetUserInfoAsync(accessToken);
+                    oauth2Service.AccessToken = userClaims.FirstOrDefault(claim => claim.Type == accessTokenClaimType)?.Value;
+                    oauth2Service.RequestUserInfoAsync().Wait();
                     // Обновить данные.
-                    await RefreshUserClaims(user, userInfo, userClaims, nameClaimType, avatarClaimType);
+                    await RefreshUserClaims(user, oauth2Service.UserInfo, userClaims, nameClaimType, avatarClaimType);
 
                     return new AuthenticatedResult
                     {
@@ -123,11 +93,49 @@ namespace SimpleChat.Controllers
                     };
                 }
                 catch
-                {
-                    //return new NotAuthenticatedResult();
-                }
+                { }
             }
             return new NotAuthenticatedResult();
+        }
+
+        private Tuple<string, string, string, IOAuth2Service> PickUpProviderDependentData(string provider)
+        {
+            string
+                nameClaimType = string.Empty,
+                avatarClaimType = string.Empty,
+                accessTokenClaimType = string.Empty;
+            IOAuth2Service oauth2Service = null;
+            switch (provider)
+            {
+                case ExternalProvider.Facebook:
+                    nameClaimType = CustomClaimTypes.FacebookName;
+                    avatarClaimType = CustomClaimTypes.FacebookAvatar;
+                    accessTokenClaimType = CustomClaimTypes.FacebookAccessToken;
+                    oauth2Service = _facebook;
+                    break;
+
+                case ExternalProvider.VKontakte:
+                    nameClaimType = CustomClaimTypes.VKontakteName;
+                    avatarClaimType = CustomClaimTypes.VKontakteAvatar;
+                    accessTokenClaimType = CustomClaimTypes.VKontakteAccessToken;
+                    oauth2Service = _vkontakte;
+                    break;
+
+                case ExternalProvider.LinkedIn:
+                    nameClaimType = CustomClaimTypes.LinkedInName;
+                    avatarClaimType = CustomClaimTypes.LinkedInAvatar;
+                    accessTokenClaimType = CustomClaimTypes.LinkedInAccessToken;
+                    oauth2Service = _linkedIn;
+                    break;
+
+                case ExternalProvider.Odnoklassniki:
+                    nameClaimType = CustomClaimTypes.OdnoklassnikiName;
+                    avatarClaimType = CustomClaimTypes.OdnoklassnikiAvatar;
+                    accessTokenClaimType = CustomClaimTypes.OdnoklassnikiAccessToken;
+                    oauth2Service = _odnoklassniki;
+                    break;
+            }
+            return new Tuple<string, string, string, IOAuth2Service>(nameClaimType, avatarClaimType, accessTokenClaimType, oauth2Service);
         }
 
         private async Task<bool> RefreshUserClaims(IdentityUser user, ExternalUserInfo userInfo, IEnumerable<Claim> userClaims,
@@ -157,27 +165,37 @@ namespace SimpleChat.Controllers
         public async Task<PartialViewResult> SignInWithFacebookAsync(string code, string state, string error, string errorReason,
             string errorDescription)
         {
+            const string PROVIDER = ExternalProvider.Facebook;
+
             // Проверить наличие ошибки входа Facebook.
             if (!string.IsNullOrWhiteSpace(error))
-            {
-                return PartialView(VIEW_NAME, new ExternalLoginErrorResult($"Ошибка окна входа через {ExternalProvider.Facebook}.",
-                    new string[] { error, errorReason, errorDescription }));
-            }
+                return GetExternalLoginErrorResult(PROVIDER, new string[] { error, errorReason, errorDescription });
 
             // Валидировать полученный state.
-            if (state != ExternalProvider.Facebook)
-                return PartialView(VIEW_NAME, new ErrorResult("Неправильный 'state'."));
+            if (state != PROVIDER)
+                return GetInvalidStateResult(PROVIDER);
 
             _facebook.RedirectUri = Url.Action(nameof(SignInWithFacebookAsync), "Auth", null, Request.Scheme, Request.Host.Value).ToLower();
             return await DoSignInAsync(_facebook, code, CustomClaimTypes.FacebookName, CustomClaimTypes.FacebookAvatar);
+        }
+
+        private PartialViewResult GetInvalidStateResult(string provider)
+        {
+            return PartialView(VIEW_NAME, new ErrorResult($"Внешний провайдер '{provider}' вернул неправильный 'state'."));
+        }
+
+        private PartialViewResult GetExternalLoginErrorResult(string provider, params string[] errors)
+        {
+            return PartialView(VIEW_NAME, new ExternalLoginErrorResult($"Ошибка окна входа через '{provider}'.", errors));
         }
 
         private async Task<PartialViewResult> DoSignInAsync(IOAuth2Service oauth2Service, string code, string nameClaimType,
             string avatarClaimType)
         {
             // Получить маркер доступа и информацию профайла пользователя.
-            string accessToken = await oauth2Service.GetAccessTokenAsync(code);
-            var userInfo = await oauth2Service.GetUserInfoAsync(accessToken);
+            oauth2Service.RequestAccessTokenAsync(code).Wait();
+            oauth2Service.RequestUserInfoAsync().Wait();
+            var userInfo = oauth2Service.UserInfo;
 
             // Не получили от внешнего провайдера e-mail.
             if (string.IsNullOrWhiteSpace(userInfo.Email))
@@ -203,7 +221,7 @@ namespace SimpleChat.Controllers
             string appUrl = Url.Action("Index", "Home", null, Request.Scheme, Request.Host.ToString());
             string text = _emailService.CreateSignInConfirmationEmail(userInfo.Name, userInfo.Provider, appUrl,
                 GenerateConfirmationCode(userInfo.Id));
-            await _emailService.SendEmailAsync(userInfo.Name, userInfo.Email, $"Добавление входа через {userInfo.Provider}", text);
+            await _emailService.SendEmailAsync(userInfo.Name, userInfo.Email, $"Добавление входа через '{userInfo.Provider}'.", text);
             string sessionId = Guid.NewGuid().ToString();
             string json = JsonConvert.SerializeObject(userInfo);
             HttpContext.Session.SetString(sessionId, json);
@@ -214,7 +232,6 @@ namespace SimpleChat.Controllers
         [HttpPost("sign-in/confirm")]
         public async Task<IAuthResult> ConfirmSigInAsync([FromForm]string sessionId, [FromForm]string code)
         {
-            //await HttpContext.Session.LoadAsync();
             if (!HttpContext.Session.Keys.Contains(sessionId))
                 return new ErrorResult("Сессия не существует.");
 
@@ -253,36 +270,11 @@ namespace SimpleChat.Controllers
 
         private async Task<IAuthResult> AddExternalLoginToUserAsync(IdentityUser user, ExternalUserInfo userInfo)
         {
+            var providerData = PickUpProviderDependentData(userInfo.Provider);
             string
-                nameClaimType = string.Empty,
-                avatarClaimType = string.Empty,
-                accessTokenClaimType = string.Empty;
-            switch (userInfo.Provider)
-            {
-                case ExternalProvider.Facebook:
-                    nameClaimType = CustomClaimTypes.FacebookName;
-                    avatarClaimType = CustomClaimTypes.FacebookAvatar;
-                    accessTokenClaimType = CustomClaimTypes.FacebookAccessToken;
-                    break;
-
-                case ExternalProvider.VKontakte:
-                    nameClaimType = CustomClaimTypes.VKontakteName;
-                    avatarClaimType = CustomClaimTypes.VKontakteAvatar;
-                    accessTokenClaimType = CustomClaimTypes.VKontakteAccessToken;
-                    break;
-
-                case ExternalProvider.LinkedIn:
-                    nameClaimType = CustomClaimTypes.LinkedInName;
-                    avatarClaimType = CustomClaimTypes.LinkedInAvatar;
-                    accessTokenClaimType = CustomClaimTypes.LinkedInAccessToken;
-                    break;
-
-                case ExternalProvider.Odnoklassniki:
-                    nameClaimType = CustomClaimTypes.OdnoklassnikiName;
-                    avatarClaimType = CustomClaimTypes.OdnoklassnikiAvatar;
-                    accessTokenClaimType = CustomClaimTypes.OdnoklassnikiAccessToken;
-                    break;
-            }
+                nameClaimType = providerData.Item1,
+                avatarClaimType = providerData.Item2,
+                accessTokenClaimType = providerData.Item3;
             var result = await _userManager.AddClaimsAsync(user, new List<Claim>
             {
                 new Claim(nameClaimType, userInfo.Name),
@@ -304,16 +296,15 @@ namespace SimpleChat.Controllers
         [HttpGet("sign-in/vkontakte")]
         public async Task<PartialViewResult> SignInWithVKontakteAsync(string code, string state, string error, string errorDescription)
         {
+            const string PROVIDER = ExternalProvider.VKontakte;
+
             // Проверить наличие ошибки входа ВКонтакте.
             if (!string.IsNullOrWhiteSpace(error))
-            {
-                return PartialView(VIEW_NAME, new ExternalLoginErrorResult($"Ошибка окна входа через {ExternalProvider.VKontakte}.",
-                    new string[] { error, errorDescription }));
-            }
+                return GetExternalLoginErrorResult(PROVIDER, new string[] { error, errorDescription });
 
             // Валидировать полученный state.
-            if (state != ExternalProvider.VKontakte)
-                return PartialView(VIEW_NAME, new ErrorResult("Неправильный 'state'."));
+            if (state != PROVIDER)
+                return GetInvalidStateResult(PROVIDER);
 
             _vkontakte.RedirectUri = Url.Action(nameof(SignInWithVKontakteAsync), "Auth", null, Request.Scheme, Request.Host.Value).ToLower();
             return await DoSignInAsync(_vkontakte, code, CustomClaimTypes.VKontakteName, CustomClaimTypes.VKontakteAvatar);
@@ -322,16 +313,15 @@ namespace SimpleChat.Controllers
         [HttpGet("sign-in/linkedin")]
         public async Task<PartialViewResult> SignInWithLinkedInAsync(string code, string state, string error, string errorDescription)
         {
+            const string PROVIDER = ExternalProvider.LinkedIn;
+
             // Проверить наличие ошибки входа LinkedIn.
             if (!string.IsNullOrWhiteSpace(error))
-            {
-                return PartialView(VIEW_NAME, new ExternalLoginErrorResult($"Ошибка окна входа через {ExternalProvider.LinkedIn}.",
-                    new string[] { error, errorDescription }));
-            }
+                return GetExternalLoginErrorResult(PROVIDER, new string[] { error, errorDescription });
 
             // Валидировать полученный state.
-            if (state != ExternalProvider.LinkedIn)
-                return PartialView(VIEW_NAME, new ErrorResult("Неправильный 'state'."));
+            if (state != PROVIDER)
+                return GetInvalidStateResult(PROVIDER);
 
             _linkedIn.RedirectUri = Url.Action(nameof(SignInWithLinkedInAsync), "Auth", null, Request.Scheme, Request.Host.Value).ToLower();
             return await DoSignInAsync(_linkedIn, code, CustomClaimTypes.LinkedInName, CustomClaimTypes.LinkedInAvatar);
@@ -340,16 +330,15 @@ namespace SimpleChat.Controllers
         [HttpGet("sign-in/odnoklassniki")]
         public async Task<PartialViewResult> SignInWithOdnoklassnikiAsync(string code, string state, string error)
         {
+            const string PROVIDER = ExternalProvider.Odnoklassniki;
+
             // Проверить наличие ошибки входа Одноклассники.
             if (!string.IsNullOrWhiteSpace(error))
-            {
-                return PartialView(VIEW_NAME, new ExternalLoginErrorResult($"Ошибка окна входа через {ExternalProvider.Odnoklassniki}.",
-                    new string[] { error }));
-            }
+                return GetExternalLoginErrorResult(PROVIDER, new string[] { error });
 
             // Валидировать полученный state.
-            if (state != ExternalProvider.Odnoklassniki)
-                return PartialView(VIEW_NAME, new ErrorResult("Неправильный 'state'."));
+            if (state != PROVIDER)
+                return GetInvalidStateResult(PROVIDER);
 
             _odnoklassniki.RedirectUri = Url.Action(nameof(SignInWithOdnoklassnikiAsync), "Auth", null, Request.Scheme, Request.Host.Value).ToLower();
             return await DoSignInAsync(_odnoklassniki, code, CustomClaimTypes.OdnoklassnikiName, CustomClaimTypes.OdnoklassnikiAvatar);

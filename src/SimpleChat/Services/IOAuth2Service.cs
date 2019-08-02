@@ -7,8 +7,12 @@ namespace SimpleChat.Services
     {
         string RedirectUri { get; set; }
 
-        Task<string> GetAccessTokenAsync(string code);
+        string AccessToken { get; set; }
 
-        Task<ExternalUserInfo> GetUserInfoAsync(string accessToken);
+        ExternalUserInfo UserInfo { get; }
+
+        Task RequestAccessTokenAsync(string code);
+
+        Task RequestUserInfoAsync();
     }
 }

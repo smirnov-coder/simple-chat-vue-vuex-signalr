@@ -24,7 +24,6 @@
         },
         created() {
             this.$store.dispatch(ActionTypes.AUTHENTICATE);
-            window.store = this.$store;///////
         }
     };
 </script>

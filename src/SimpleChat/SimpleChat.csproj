@@ -19,7 +19,6 @@
     <Folder Include="ClientApp\assets\fonts\" />
     <Folder Include="ClientApp\assets\images\" />
     <Folder Include="Data\" />
-    <Folder Include="Infrastructure\Extensions\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
   

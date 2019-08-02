@@ -6,7 +6,6 @@ import auth from "@/store/modules/auth";
 import hub from "@/store/modules/hub";
 
 Vue.use(Vuex);
-//Vue.config.devtools = process.env.NODE_ENV === "development";
 
 export default new Vuex.Store({
     modules: {

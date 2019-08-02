@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.WebUtilities;
@@ -13,80 +15,74 @@ using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
-    public class LinkedInOAuth2Service : IOAuth2Service
+    public class LinkedInOAuth2Service : OAuth2ServiceBase//IOAuth2Service
     {
-        private IConfiguration _configuration;
-
-        private const string ACCESS_TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
         private const string API_BASE_URL = "https://api.linkedin.com/v2";
-
-        public string RedirectUri { get; set; }
-
-        private HttpClient _httpClient = new HttpClient();
-        public virtual HttpClient HttpClient
-        {
-            get => _httpClient;
-            set => _httpClient = value ?? throw new ArgumentNullException(nameof(value), "Значение не может быть равно 'null'.");
-        }
+        private const string ACCESS_TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
 
         public LinkedInOAuth2Service(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
+            : base(configuration, "Authentication:LinkedIn:ClientId", "Authentication:LinkedIn:ClientSecret", ExternalProvider.LinkedIn)
+        { }
 
-        public async Task<string> GetAccessTokenAsync(string code)
+        protected override HttpRequestMessage CreateAccessTokenRequest(string code)
         {
-            if (string.IsNullOrWhiteSpace(code))
-                throw new ArgumentException("Значение не может быть пустой строкой или равно 'null'.", nameof(code));
-
             var content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = _configuration["Authentication:LinkedIn:ClientId"],
-                ["client_secret"] = _configuration["Authentication:LinkedIn:ClientSecret"],
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
                 ["redirect_uri"] = RedirectUri,
                 ["code"] = code,
                 ["grant_type"] = "authorization_code"
             });
-            var response = await HttpClient.PostAsync(ACCESS_TOKEN_ENDPOINT, content);
-            if (!response.IsSuccessStatusCode)
-                throw new OAuth2ServiceException("Не удалось подключиться к 'LinkedIn' для обмена кода авторизации на маркер доступа.");
-            string json = await response.Content.ReadAsStringAsync();
-            var accessTokenResponse = JObject.Parse(json);
-            if (accessTokenResponse.ContainsKey("error"))
-                ThrowException("Не удалось обменять код авторизации на маркер доступа.", accessTokenResponse);
-            return (string)accessTokenResponse["access_token"];
+            return new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(ACCESS_TOKEN_ENDPOINT),
+                Content = content
+            };
         }
 
-        private void ThrowException(string message, JObject dataSource)
+        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse) => parsedResponse.ContainsKey("serviceErrorCode");
+
+        protected override void CollectErrorData(IDictionary data, JObject dataSource)
         {
-            var exception = new OAuth2ServiceException(message);
-            /// TODO: Найти обработку ошибок.
-            throw exception;
+            var keys = new
+            {
+                Message = "message",
+                ServiceErrorCode = "serviceErrorCode",
+                Status = "status"
+            };
+            if (dataSource.ContainsKey(keys.Message))
+                data.Add(keys.Message, (string)dataSource[keys.Message]);
+            if (dataSource.ContainsKey(keys.ServiceErrorCode))
+                data.Add(keys.ServiceErrorCode, (int)dataSource[keys.ServiceErrorCode]);
+            if (dataSource.ContainsKey(keys.Status))
+                data.Add(keys.Status, (int)dataSource[keys.Status]);
         }
 
-        public async Task<ExternalUserInfo> GetUserInfoAsync(string accessToken)
+        protected override HttpRequestMessage CreateUserInfoRequest()
         {
             string requestUri = QueryHelpers.AddQueryString($"{API_BASE_URL}/me", new Dictionary<string, string>
             {
                 ["projection"] = "(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))",
             });
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            request.Headers.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, accessToken);
-            var response = await HttpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                throw new Exception("Не удалось подключиться к 'LinkedIn' для получения информации о пользователе.");
-            string json = await response.Content.ReadAsStringAsync();
-            var userInfoResponse = JObject.Parse(json);
-            if (userInfoResponse.ContainsKey("error"))
-                ThrowException("Не удалось получить информацию о пользователе.", userInfoResponse);
-            return new ExternalUserInfo
+            request.Headers.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, AccessToken);
+            return request;
+        }
+
+        protected override bool IsErrorUserInfoResponse(JObject parsedResponse) => IsErrorAccessTokenResponse(parsedResponse);
+
+        protected override async Task HandleUserInfoResponseAsync(JObject userInfoResponse)
+        {
+            UserInfo = new ExternalUserInfo
             {
                 Id = (string)userInfoResponse["id"],
                 Name = $"{(string)userInfoResponse["localizedFirstName"]} {(string)userInfoResponse["localizedLastName"]}",
-                Email = await GetEmailAsync(accessToken),
-                AccessToken = accessToken,
+                Email = await GetEmailAsync(AccessToken),
+                AccessToken = AccessToken,
                 Picture = (string)userInfoResponse["profilePicture"]["displayImage~"]["elements"].First["identifiers"].First["identifier"],
-                Provider = ExternalProvider.LinkedIn
+                Provider = _providerName
             };
         }
 
@@ -99,11 +95,15 @@ namespace SimpleChat.Services
             });
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
             request.Headers.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, accessToken);
-            var response = await HttpClient.SendAsync(request);
+            var response = await HttpClient.SendAsync(request, default(CancellationToken));
             if (!response.IsSuccessStatusCode)
-                throw new Exception("Не удалось подключиться к 'LinkedIn' для получения адреса электронной почты пользователя.");
+                throw new OAuth2ServiceException($"Не удалось подключиться к '{ExternalProvider.LinkedIn}' для получения адреса электронной почты пользователя.");
+
             string json = await response.Content.ReadAsStringAsync();
             var emailResponse = JObject.Parse(json);
+            if (IsErrorUserInfoResponse(emailResponse))
+                ThrowException("Не удалось получить адрес электронной почты пользователя.", emailResponse);
+
             string email = (string)emailResponse["elements"]
                 .FirstOrDefault(node => (string)node["type"] == "EMAIL" && (bool)node["primary"])?["handle~"]["emailAddress"];
             return email;

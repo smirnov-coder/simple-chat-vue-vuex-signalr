@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -11,54 +13,31 @@ using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
-    public class FacebookOAuth2Service : IOAuth2Service
+    public class FacebookOAuth2Service : OAuth2ServiceBase
     {
-        private IConfiguration _configuration;
-        private readonly string _clientId;
-        private readonly string _clientSecret;
         private const string BASE_URL = "https://graph.facebook.com";
         private readonly string ACCESS_TOKEN_ENDPOINT = $"{BASE_URL}/v3.3/oauth/access_token";
 
-        public string RedirectUri { get; set; }
-
-        private HttpClient _httpClient = new HttpClient();
-        public virtual HttpClient HttpClient
-        {
-            get => _httpClient;
-            set => _httpClient = value ?? throw new ArgumentNullException(nameof(value), "Значение не может быть равно 'null'.");
-        }
-
         public FacebookOAuth2Service(IConfiguration configuration)
-        {
-            _configuration = configuration;
-            _clientId = _configuration["Authentication:Facebook:AppId"];
-            _clientSecret = _configuration["Authentication:Facebook:AppSecret"];
-        }
+            : base(configuration, "Authentication:Facebook:AppId", "Authentication:Facebook:AppSecret", ExternalProvider.Facebook)
+        { }
 
-        public async Task<string> GetAccessTokenAsync(string code)
+        protected override HttpRequestMessage CreateAccessTokenRequest(string code)
         {
-            if (string.IsNullOrWhiteSpace(code))
-                throw new ArgumentException("Значение не может быть пустой строкой или равно 'null'.", nameof(code));
-            
             string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
             {
-                ["client_id"] = _clientId,
-                ["client_secret"] = _clientSecret,
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
                 ["redirect_uri"] = RedirectUri,
                 ["code"] = code,
-                ["auth_type"] = "rerequest" /// TODO: let's see what happened
+                ["auth_type"] = "rerequest"
             });
-            var response = await HttpClient.GetAsync(requestUri);
-            if (!response.IsSuccessStatusCode)
-                throw new OAuth2ServiceException("Не удалось подключиться к 'Facebook' для обмена кода авторизации на маркер доступа.");
-            string json = await response.Content.ReadAsStringAsync();
-            var accessTokenResponse = JObject.Parse(json);
-            if (accessTokenResponse.ContainsKey("error"))
-                ThrowException("Не удалось обменять код авторизации на маркер доступа.", accessTokenResponse);
-            return await ExchangeShortLivedAccessTokenAsync((string)accessTokenResponse["access_token"]);
+            return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
 
-        private void ThrowException(string message, JObject dataSource)
+        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse) => parsedResponse.ContainsKey("error");
+
+        protected override void CollectErrorData(IDictionary data, JObject dataSource)
         {
             var keys = new
             {
@@ -70,70 +49,74 @@ namespace SimpleChat.Services
                 ErrorUserMessage = "error_user_msg",
                 TraceId = "fbtrace_id"
             };
-            var exception = new OAuth2ServiceException(message);
-            if (dataSource.ContainsKey(keys.Message))
-                exception.Data.Add(keys.Message, (string)dataSource[keys.Message]);
-            if (dataSource.ContainsKey(keys.Type))
-                exception.Data.Add(keys.Type, (string)dataSource[keys.Type]);
-            if (dataSource.ContainsKey(keys.Code))
-                exception.Data.Add(keys.Code, (int)dataSource[keys.Code]);
-            if (dataSource.ContainsKey(keys.ErrorSubcode))
-                exception.Data.Add(keys.ErrorSubcode, (int)dataSource[keys.ErrorSubcode]);
-            if (dataSource.ContainsKey(keys.ErrorUserTitle))
-                exception.Data.Add(keys.ErrorUserTitle, (string)dataSource[keys.ErrorUserTitle]);
-            if (dataSource.ContainsKey(keys.ErrorUserMessage))
-                exception.Data.Add(keys.ErrorUserMessage, (string)dataSource[keys.ErrorUserMessage]);
-            if (dataSource.ContainsKey(keys.TraceId))
-                exception.Data.Add(keys.TraceId, (string)dataSource[keys.TraceId]);
-            throw exception;
+            var errorObject = (JObject)dataSource["error"];
+            if (errorObject.ContainsKey(keys.Message))
+                data.Add(keys.Message, (string)errorObject[keys.Message]);
+            if (errorObject.ContainsKey(keys.Type))
+                data.Add(keys.Type, (string)errorObject[keys.Type]);
+            if (errorObject.ContainsKey(keys.Code))
+                data.Add(keys.Code, (int)errorObject[keys.Code]);
+            if (errorObject.ContainsKey(keys.ErrorSubcode))
+                data.Add(keys.ErrorSubcode, (int)errorObject[keys.ErrorSubcode]);
+            if (errorObject.ContainsKey(keys.ErrorUserTitle))
+                data.Add(keys.ErrorUserTitle, (string)errorObject[keys.ErrorUserTitle]);
+            if (errorObject.ContainsKey(keys.ErrorUserMessage))
+                data.Add(keys.ErrorUserMessage, (string)errorObject[keys.ErrorUserMessage]);
+            if (errorObject.ContainsKey(keys.TraceId))
+                data.Add(keys.TraceId, (string)errorObject[keys.TraceId]);
         }
 
-        private async Task<string> ExchangeShortLivedAccessTokenAsync(string accessToken)
+        protected override async Task HandleAccessTokenResponseAsync(JObject accessTokenResponse)
         {
-            if (string.IsNullOrWhiteSpace(accessToken))
-                throw new ArgumentException("Значение не может быть пустой строкой или равно 'null'.", nameof(accessToken));
+            await ExchangeShortLivedAccessTokenAsync((string)accessTokenResponse["access_token"]);
+        }
+
+        private async Task ExchangeShortLivedAccessTokenAsync(string accessToken)
+        {
+            EnsureStringParamIsNotNullOrEmpty(accessToken, nameof(accessToken));
 
             string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
             {
-                ["client_id"] = _clientId,
-                ["client_secret"] = _clientSecret,
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
                 ["grant_type"] = "fb_exchange_token",
                 ["fb_exchange_token"] = accessToken,
                 ["access_token"] = accessToken
             });
-            var response = await HttpClient.GetAsync(requestUri);
+            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), default(CancellationToken));
             if (!response.IsSuccessStatusCode)
-                throw new Exception("Не удалось подключиться к 'Facebook' для обмена краткосрочного маркера доступа на долгосрочный.");
+                throw new OAuth2ServiceException($"Не удалось подключиться к '{_providerName}' для обмена краткосрочного маркера доступа на долгосрочный.");
+
             string json = await response.Content.ReadAsStringAsync();
             var exchangeTokenResponse = JObject.Parse(json);
-            if (exchangeTokenResponse.ContainsKey("error"))
+            if (IsErrorAccessTokenResponse(exchangeTokenResponse))
                 ThrowException("Не удалось обменять краткосрочный маркер доступа на долгострочный.", exchangeTokenResponse);
-            return (string)exchangeTokenResponse["access_token"];
+
+            AccessToken = (string)exchangeTokenResponse["access_token"];
         }
 
-        public async Task<ExternalUserInfo> GetUserInfoAsync(string accessToken)
+        protected override HttpRequestMessage CreateUserInfoRequest()
         {
             string requestUri = QueryHelpers.AddQueryString($"{BASE_URL}/me", new Dictionary<string, string>
             {
                 ["fields"] = "id,name,email,picture",
-                ["access_token"] = accessToken
+                ["access_token"] = AccessToken
             });
-            var response = await HttpClient.GetAsync(requestUri);
-            if (!response.IsSuccessStatusCode)
-                throw new Exception("Не удалось подключиться к 'Facebook' для получения информации о пользователе.");
-            string json = await response.Content.ReadAsStringAsync();
-            var userInfoResponse = JObject.Parse(json);
-            if (userInfoResponse.ContainsKey("error"))
-                ThrowException("Не удалось получить информацию о пользователе.", userInfoResponse);
-            return new ExternalUserInfo
+            return new HttpRequestMessage(HttpMethod.Get, requestUri);
+        }
+
+        protected override Task HandleUserInfoResponseAsync(JObject userInfoResponse)
+        {
+            UserInfo = new ExternalUserInfo
             {
                 Id = (string)userInfoResponse["id"],
                 Name = (string)userInfoResponse["name"],
                 Email = (string)userInfoResponse["email"],
-                AccessToken = accessToken,
-                Picture =  (string)userInfoResponse["picture"]["data"]["url"],
-                Provider = ExternalProvider.Facebook
+                AccessToken = AccessToken,
+                Picture = (string)userInfoResponse["picture"]["data"]["url"],
+                Provider = _providerName
             };
+            return Task.CompletedTask;
         }
     }
 
