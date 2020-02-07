@@ -19,10 +19,6 @@ namespace SimpleChat.Infrastructure.Constants
         public const string FacebookAvatar = "facebook:avatar";
         public const string FacebookAccessToken = "facebook:access_token";
 
-        public const string LinkedInName = "linkedin:name";
-        public const string LinkedInAvatar = "linkedin:avatar";
-        public const string LinkedInAccessToken = "linkedin:access_token";
-
         public const string OdnoklassnikiName = "odnoklassniki:name";
         public const string OdnoklassnikiAvatar = "odnoklassniki:avatar";
         public const string OdnoklassnikiAccessToken = "odnoklassniki:access_token";

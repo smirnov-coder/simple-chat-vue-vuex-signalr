@@ -9,7 +9,6 @@ namespace SimpleChat.Infrastructure.Constants
     {
         public const string Facebook = "Facebook";
         public const string VKontakte = "ВКонтакте";
-        public const string LinkedIn = "LinkedIn";
         public const string Odnoklassniki = "Одноклассники";
     }
 }

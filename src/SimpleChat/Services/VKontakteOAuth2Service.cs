@@ -3,18 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using SimpleChat.Infrastructure.Constants;
+using SimpleChat.Infrastructure.Helpers;
 using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
-    public class VKontakteOAuth2Service : OAuth2ServiceBase
+    public class VKontakteOAuth2Service : OAuth2ServiceBase, IVKontakteOAuth2Service
     {
-        private const string ACCESS_TOKEN_ENDPOINT = "https://oauth.vk.com/access_token";
-        private const string USERS_URL = "https://api.vk.com/method/users.get";
+        private const string AccessTokenEndpoint = "https://oauth.vk.com/access_token";
+        private const string UserInfoEndpoint = "https://api.vk.com/method/users.get";
         private string _userEmail;
 
         public override string AccessToken
@@ -27,13 +27,24 @@ namespace SimpleChat.Services
             }
         }
 
-        public VKontakteOAuth2Service(IConfiguration configuration)
-            : base(configuration, "Authentication:VKontakte:ClientId", "Authentication:VKontakte:ClientSecret", ExternalProvider.VKontakte)
-        { }
+        public VKontakteOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
+            : this(configuration, uriHelper, null, null)
+        {
+        }
+
+        public VKontakteOAuth2Service(
+            IConfiguration configuration,
+            IUriHelper uriHelper,
+            IJsonHelper jsonHelper,
+            IGuard guard)
+            : base(ConfigurationKeys.VKontakteClientId, ConfigurationKeys.VKontakteClientSecret,
+                  ExternalProvider.VKontakte, configuration, uriHelper, jsonHelper, guard)
+        {
+        }
 
         protected override HttpRequestMessage CreateAccessTokenRequest(string code)
         {
-            string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(AccessTokenEndpoint, new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
@@ -43,7 +54,10 @@ namespace SimpleChat.Services
             return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
 
-        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse) => parsedResponse.ContainsKey("error");
+        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse)
+        { 
+            return parsedResponse.ContainsKey("error");
+        }
 
         protected override void CollectErrorData(IDictionary data, JObject dataSource)
         {
@@ -69,7 +83,10 @@ namespace SimpleChat.Services
                     if (errorObject.ContainsKey(keys.ErrorMessage))
                         data.Add(keys.ErrorMessage, (string)errorObject[keys.ErrorMessage]);
                     if (errorObject.ContainsKey(keys.RequestParams))
-                        data.Add(keys.RequestParams, errorObject[keys.RequestParams].ToObject<KeyValuePair<string, string>[]>());
+                    {
+                        data.Add(keys.RequestParams, errorObject[keys.RequestParams]
+                            .ToObject<KeyValuePair<string, string>[]>());
+                    }
                 }
             }
             if (dataSource.ContainsKey(keys.ErrorDescription))
@@ -79,12 +96,13 @@ namespace SimpleChat.Services
         protected override Task HandleAccessTokenResponseAsync(JObject accessTokenResponse)
         {
             _userEmail = (string)accessTokenResponse["email"];
-            return base.HandleAccessTokenResponseAsync(accessTokenResponse);
+            base.AccessToken = (string)accessTokenResponse["access_token"];
+            return Task.CompletedTask;
         }
 
         protected override HttpRequestMessage CreateUserInfoRequest()
         {
-            string requestUri = QueryHelpers.AddQueryString(USERS_URL, new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(UserInfoEndpoint, new Dictionary<string, string>
             {
                 ["access_token"] = AccessToken,
                 ["fields"] = "photo_50",
@@ -94,14 +112,19 @@ namespace SimpleChat.Services
             return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
 
-        protected override bool IsErrorUserInfoResponse(JObject parsedResponse) => IsErrorAccessTokenResponse(parsedResponse);
+        protected override bool IsErrorUserInfoResponse(JObject parsedResponse)
+        {
+            return IsErrorAccessTokenResponse(parsedResponse);
+        }
 
         protected override Task HandleUserInfoResponseAsync(JObject userInfoResponse)
         {
             UserInfo = new ExternalUserInfo
             {
                 Id = (string)userInfoResponse["response"].First["id"],
-                Name = $"{(string)userInfoResponse["response"].First["first_name"]} {(string)userInfoResponse["response"].First["last_name"]}",
+                Name = string.Format("{0} {1}",
+                    (string)userInfoResponse["response"].First["first_name"],
+                    (string)userInfoResponse["response"].First["last_name"]),
                 Email = _userEmail,
                 AccessToken = AccessToken,
                 Picture = (string)userInfoResponse["response"].First["photo_50"],

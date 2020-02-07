@@ -28,8 +28,11 @@ namespace SimpleChat.Models
 
         public string Message { get; set; }
 
-        public EmailRequiredResult(string provider) => Message = $"Для того, войти на наш сайт, необходимо предоставить " +
-            $"доступ к адресу электронной почты Вашего аккаунта в социальной сети '{provider}'.";
+        public EmailRequiredResult(string provider)
+        {
+            Message = $"Для того, чтобы войти на наш сайт, необходимо предоставить доступ к адресу электронной " +
+                $"почты Вашего аккаунта в социальной сети '{provider}'.";
+        }
     }
 
     public class ConfirmSignInResult : IAuthResult
@@ -64,6 +67,10 @@ namespace SimpleChat.Models
 
         public string AccessToken { get; set; }
 
+        public SignInSuccessResult()
+        {
+        }
+
         public SignInSuccessResult(string accessToken) => AccessToken = accessToken;
     }
 
@@ -78,7 +85,7 @@ namespace SimpleChat.Models
         public ErrorResult(string message, IEnumerable<string> errors = null)
         {
             Message = message;
-            Errors = errors;
+            Errors = errors ?? new List<string>();
         }
     }
 }

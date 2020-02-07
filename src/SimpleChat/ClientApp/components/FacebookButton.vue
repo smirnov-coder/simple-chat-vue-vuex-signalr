@@ -25,13 +25,15 @@
                 queryString.append("response_type", "code");
                 queryString.append("state", state);
 
+                queryString.append("auth_type", "reauthorize"); /////
+
                 window.addEventListener("message", (event) => {
                     if (event.data.source && event.data.source === "popup") {
                         if (event.origin.startsWith(domain)) {
                             event.source.close();
                             this.$store.dispatch(ActionTypes.SIGN_IN_RESULT, event.data.result);
                         } else {
-                            console.warn("Нарушение политики CORS. Получено сообщение с неизвестного домена.");
+                            console.warn("[SimpleChat] Нарушение политики CORS. Получено сообщение с неизвестного домена.");
                         }
                     }
                 }, true);

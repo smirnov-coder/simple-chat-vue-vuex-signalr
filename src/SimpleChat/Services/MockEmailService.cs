@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
@@ -5,11 +6,18 @@ using Microsoft.Extensions.Configuration;
 
 namespace SimpleChat.Services
 {
-    public class TestEmailService : EmailService
+    public class MockEmailService : EmailService
     {
-        public TestEmailService(IConfiguration configuration) : base(configuration) { }
+        private readonly string _emailFolder = @"D:\Emails";
 
-        public override async Task SendEmailAsync(string recipientName, string recipientEmail, string subject, string text)
+        public MockEmailService(IConfiguration configuration) : base(configuration)
+        {
+            if (!Directory.Exists(_emailFolder))
+                Directory.CreateDirectory(_emailFolder);
+        }
+
+        public override async Task SendEmailAsync(string recipientName, string recipientEmail, string subject,
+            string text)
         {
             using (var message = new MailMessage())
             {
@@ -23,7 +31,7 @@ namespace SimpleChat.Services
                 using (var smtpClient = new SmtpClient())
                 {
                     smtpClient.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
-                    smtpClient.PickupDirectoryLocation = @"D:\Emails";
+                    smtpClient.PickupDirectoryLocation = _emailFolder;
                     await smtpClient.SendMailAsync(message);
                 }
             }

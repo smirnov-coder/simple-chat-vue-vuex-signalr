@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace SimpleChat.Hubs
 {
-    public class UserCollection
+    public class UserCollection : IUserCollection
     {
         private List<User> _users = new List<User>();
 
@@ -54,19 +54,6 @@ namespace SimpleChat.Hubs
 
         public IEnumerable<User> GetUsers() => _users.AsReadOnly();
 
-        public User GetUser(string userId) => _users.FirstOrDefault(user => user.Id == userId);
-    }
-
-    public class User
-    {
-        public string Id { get; set; }
-
-        public string Name { get; set; }
-
-        public string Avatar { get; set; }
-
-        public string Provider { get; set; }
-
-        public HashSet<string> ConnectionIds { get; set; } = new HashSet<string>();
+        public User GetUser(string userId) => GetUsers().FirstOrDefault(user => user.Id == userId);
     }
 }

@@ -60,7 +60,7 @@ export const HubClientMethodNames = {
     NEW_USER_CONNECTION: "NewUserConnection",
     FORCE_SIGN_OUT: "ForceSignOut",
 };
-
+/// TODO: перенести в utils
 function mapKeyToValue(obj) {
     let result = {};
     Object.keys(obj).map(key => {

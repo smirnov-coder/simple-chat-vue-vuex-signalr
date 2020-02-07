@@ -22,7 +22,7 @@
                 return this.$store.getters[GetterTypes.IS_AUTHENTICATED];
             }
         },
-        created() {
+        created: function () {
             this.$store.dispatch(ActionTypes.AUTHENTICATE);
         }
     };

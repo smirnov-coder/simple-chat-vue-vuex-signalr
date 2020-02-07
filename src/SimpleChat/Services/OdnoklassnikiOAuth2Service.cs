@@ -2,33 +2,48 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using SimpleChat.Infrastructure.Constants;
 using SimpleChat.Models;
-using SimpleChat.Infrastructure.Extensions;
+using SimpleChat.Infrastructure.Helpers;
 
 namespace SimpleChat.Services
 {
-    public class OdnoklassnikiOAuth2Service : OAuth2ServiceBase
+    public class OdnoklassnikiOAuth2Service : OAuth2ServiceBase, IOdnoklassnikiOAuth2Service
     {
         private readonly string _publicKey;
+        private const string AccessTokenEndpoint = "https://api.ok.ru/oauth/token.do";
+        private const string UserInfoEndpoint = "https://api.ok.ru/api/users/getCurrentUser";
 
-        public OdnoklassnikiOAuth2Service(IConfiguration configuration)
-            : base(configuration, "Authentication:Odnoklassniki:ApplicationId", "Authentication:Odnoklassniki:ApplicationSecretKey", ExternalProvider.Odnoklassniki)
+        private IMD5Hasher _md5Hasher = new MD5Hasher();
+        public IMD5Hasher MD5Hasher
         {
-            _publicKey = _configuration["Authentication:Odnoklassniki:ApplicationKey"];
+            get => _md5Hasher;
+            set => _md5Hasher = _guard.EnsureObjectParamIsNotNull(value, nameof(MD5Hasher));
         }
+
+        public OdnoklassnikiOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
+            : this(configuration, uriHelper, null, null)
+        {
+        }
+
+        public OdnoklassnikiOAuth2Service(
+            IConfiguration configuration,
+            IUriHelper uriHelper,
+            IJsonHelper jsonHelper,
+            IGuard guard = null)
+            : base(ConfigurationKeys.OdnoklassnikiApplicationId, ConfigurationKeys.OdnoklassnikiApplicationSecretKey,
+                  ExternalProvider.Odnoklassniki, configuration, uriHelper, jsonHelper, guard)
+        {
+            _publicKey = _configuration[ConfigurationKeys.OdnoklassnikiApplicationKey];
+        }
+
 
         protected override HttpRequestMessage CreateAccessTokenRequest(string code)
         {
-            const string ACCESS_TOKEN_ENDPOINT = "https://api.ok.ru/oauth/token.do";
-
-            string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(AccessTokenEndpoint, new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
@@ -40,11 +55,13 @@ namespace SimpleChat.Services
             {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri(requestUri),
-                Content = new StringContent("")
             };
         }
 
-        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse) => parsedResponse.ContainsKey("error");
+        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse)
+        { 
+            return parsedResponse.ContainsKey("error");
+        }
 
         protected override void CollectErrorData(IDictionary data, JObject dataSource)
         {
@@ -73,30 +90,29 @@ namespace SimpleChat.Services
 
         protected override HttpRequestMessage CreateUserInfoRequest()
         {
-            const string REQUEST_URL = "https://api.ok.ru/api/users/getCurrentUser";
-            using (var md5 = MD5.Create())
+            string sessionSecretKey = MD5Hasher.ComputeHash(AccessToken + ClientSecret);
+            string signatureSource = ""
+                + $"application_key={_publicKey}"
+                + $"fields=uid,name,email,pic50x50"
+                + $"format=json"
+                + $"{sessionSecretKey}";
+            string signature = MD5Hasher.ComputeHash(signatureSource);
+            var queryParams = new Dictionary<string, string>
             {
-                string sessionSecretKey = md5.ComputeHash(AccessToken + ClientSecret);
-                string signatureSource = ""
-                    + $"application_key={_publicKey}"
-                    + $"fields=uid,name,email,pic50x50"
-                    + $"format=json"
-                    + $"{sessionSecretKey}";
-                string signature = md5.ComputeHash(signatureSource);
-                var queryParams = new Dictionary<string, string>
-                {
-                    ["application_key"] = _publicKey,
-                    ["fields"] = "uid,name,email,pic50x50",
-                    ["format"] = "json",
-                    ["access_token"] = AccessToken,
-                    ["sig"] = signature
-                };
-                string requestUri = QueryHelpers.AddQueryString(REQUEST_URL, queryParams);
-                return new HttpRequestMessage(HttpMethod.Get, requestUri);
-            }
+                ["application_key"] = _publicKey,
+                ["fields"] = "uid,name,email,pic50x50",
+                ["format"] = "json",
+                ["access_token"] = AccessToken,
+                ["sig"] = signature
+            };
+            string requestUri = _uriHelper.AddQueryString(UserInfoEndpoint, queryParams);
+            return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
 
-        protected override bool IsErrorUserInfoResponse(JObject parsedResponse) => parsedResponse.ContainsKey("error_code");
+        protected override bool IsErrorUserInfoResponse(JObject parsedResponse)
+        {
+            return parsedResponse.ContainsKey("error_code");
+        }
 
         protected override Task HandleUserInfoResponseAsync(JObject userInfoResponse)
         {

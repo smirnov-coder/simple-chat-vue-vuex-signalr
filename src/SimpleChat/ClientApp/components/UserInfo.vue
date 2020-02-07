@@ -57,7 +57,6 @@
             badgeIcon() {
                 switch (this.user.provider) {
                     case "Facebook": return "mdi-facebook";
-                    case "LinkedIn": return "mdi-linkedin";
                     case "ВКонтакте": return "mdi-vk";
                     case "Одноклассники": return "mdi-odnoklassniki";
                     default: return "mdi-help";
@@ -66,7 +65,6 @@
             badgeBgColor() {
                 switch (this.user.provider) {
                     case "Facebook": return "primary";
-                    case "LinkedIn": return "primary";
                     case "ВКонтакте": return "primary";
                     case "Одноклассники": return "orange";
                     default: return "red";

@@ -38,19 +38,19 @@ module.exports = () => {
                     test: /\.vue$/,
                     include: path.resolve(__dirname, "ClientApp"),
                     loader: "vue-loader",
-                    //options: {
-                    //    loaders: {
-                    //        js: "babel-loader"
-                    //    }
-                    //}
+                    options: {
+                        loaders: {
+                            js: "babel-loader"
+                        }
+                    }
                 },
                 {
                     test: /\.js$/,
                     include: path.resolve(__dirname, "ClientApp"),
                     loader: "babel-loader?cacheDirectory=true",
-                    //options: {
-                    //    presets: ["@babel/preset-env"]
-                    //}
+                    options: {
+                        presets: ["@babel/preset-env"]
+                    }
                 },
                 {
                     test: /\.css$/,

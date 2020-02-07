@@ -43,13 +43,6 @@
                     state: "@Html.Raw(ExternalProvider.VKontakte)",
                     apiVersion: "5.101"
                 },
-                LinkedIn: {
-                    clientId: "@configuration["Authentication:LinkedIn:ClientId"]",
-                    redirectUri: "@Url?.Action("SignInWithLinkedInAsync", "Auth", null, protocol, host)?.ToLower()",
-                    authorizeEndpoint: "https://www.linkedin.com/oauth/v2/authorization",
-                    scope: "r_liteprofile r_emailaddress",
-                    state: "@ExternalProvider.LinkedIn"
-                },
                 Odnoklassniki: {
                     clientId: "@configuration["Authentication:Odnoklassniki:ApplicationId"]",
                     redirectUri: "@Url?.Action("SignInWithOdnoklassnikiAsync", "Auth", null, protocol, host)?.ToLower()",

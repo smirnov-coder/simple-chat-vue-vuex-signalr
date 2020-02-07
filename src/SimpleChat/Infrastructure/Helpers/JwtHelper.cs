@@ -9,55 +9,81 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
-    public static class JwtHelper
+    public class JwtHelper : IJwtHelper
     {
-        public static string GetEncodedJwt(IEnumerable<Claim> userClaims)
+        private JwtOptions _options;
+        private JwtSecurityTokenHandler _tokenHandler;
+        private IGuard _guard;
+
+        public JwtHelper() : this(null, null, null)
         {
-            var today = DateTime.UtcNow;
+        }
+
+        public JwtHelper(JwtOptions options, JwtSecurityTokenHandler tokenHandler) : this(options, tokenHandler, null)
+        {
+        }
+
+        public JwtHelper(JwtOptions options, JwtSecurityTokenHandler tokenHandler, IGuard guard)
+        {
+            _guard = guard ?? new Guard();
+            _options = options ?? JwtOptions.Default;
+            _tokenHandler = tokenHandler ?? new JwtSecurityTokenHandler();
+        }
+
+        public string CreateEncodedJwt(IEnumerable<Claim> userClaims)
+        {
+            _guard.EnsureObjectParamIsNotNull(userClaims, nameof(userClaims));
+            if (!userClaims.Any())
+                throw new ArgumentException("Коллекция клаймов пуста.", nameof(userClaims));
+
+            var today = GetCurrentDateTime();
             var jwt = new JwtSecurityToken(
-                issuer: JwtOptions.ISSUER,
-                audience: JwtOptions.AUDIENCE,
+                issuer: _options.Issuer,
+                audience: _options.Audience,
                 notBefore: today,
                 claims: userClaims,
-                expires: today.Add(TimeSpan.FromDays(JwtOptions.LIFETIME)),
-                signingCredentials: new SigningCredentials(JwtOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+                expires: today.Add(_options.Lifetime),
+                signingCredentials: new SigningCredentials(_options.GetSymmetricSecurityKey(),
+                    SecurityAlgorithms.HmacSha256));
+            var encodedJwt = _tokenHandler.WriteToken(jwt);
 
             return encodedJwt;
         }
 
-        /// <summary>
-        /// Проверяет валидность JSON Web Token (JWT).
-        /// </summary>
-        /// <param name="encodedJwt">JWT, закодированный в компактном сериализованном формате.</param>
-        /// <returns>true, если JWT является валидным; иначе false.</returns>
-        public static bool IsValid(string encodedJwt)
+        protected virtual DateTime GetCurrentDateTime() => DateTime.UtcNow;
+
+        public bool ValidateToken(string encodedJwt)
         {
-            var jwtHandler = new JwtSecurityTokenHandler();
-            jwtHandler.ValidateToken(encodedJwt, GetValidationParameters(), out SecurityToken token);
+            _guard.EnsureStringParamIsNotNullOrEmpty(encodedJwt, nameof(encodedJwt));
+            _tokenHandler.ValidateToken(encodedJwt, GetValidationParameters(), out SecurityToken token);
             return token != null;
         }
 
-        /// <summary>
-        /// Возвращает параметры проверки валидации JSON Web Token (JWT).
-        /// </summary>
-        public static TokenValidationParameters GetValidationParameters() =>
-            new TokenValidationParameters
+        public TokenValidationParameters GetValidationParameters()
+        {
+            return new TokenValidationParameters
             {
                 // Укзывает, будет ли валидироваться издатель при валидации токена.
                 ValidateIssuer = true,
+
                 // Строка, представляющая издателя.
-                ValidIssuer = JwtOptions.ISSUER,
+                ValidIssuer = _options.Issuer,
+
                 // Будет ли валидироваться потребитель токена.
                 ValidateAudience = true,
+
                 // Установка потребителя токена.
-                ValidAudience = JwtOptions.AUDIENCE,
+                ValidAudience = _options.Audience,
+
                 // Будет ли валидироваться время существования.
                 ValidateLifetime = true,
+
                 // Установка ключа безопасности.
-                IssuerSigningKey = JwtOptions.GetSymmetricSecurityKey(),
+                IssuerSigningKey = _options.GetSymmetricSecurityKey(),
+
                 // Валидация ключа безопасности.
                 ValidateIssuerSigningKey = true
             };
+        }
     }
 }

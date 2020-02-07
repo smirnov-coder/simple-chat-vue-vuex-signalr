@@ -15,26 +15,34 @@ namespace SimpleChat.Infrastructure.Helpers
         /// <summary>
         /// Издатель JWT.
         /// </summary>
-        public const string ISSUER = "SimpleChat";
+        public virtual string Issuer { get; set; }
 
         /// <summary>
         /// Потребитель JWT.
         /// </summary>
-        public const string AUDIENCE = "SimpleChat";
+        public virtual string Audience { get; set; }
 
         /// <summary>
         /// Ключ, используемый для подписи JWT.
         /// </summary>
-        const string KEY = "mysupersecret_secretkey!123";
+        public virtual string SigningKey { get; set; }
 
         /// <summary>
-        /// Время жизни JWT в условных единицах (минуты, часы, дни и т.д.).
+        /// Срок действия JWT.
         /// </summary>
-        public const int LIFETIME = 10;
+        public virtual TimeSpan Lifetime { get; set; }
 
-        public static SymmetricSecurityKey GetSymmetricSecurityKey()
+        public static JwtOptions Default { get; } = new JwtOptions
         {
-            return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));
+            Issuer = "SimpleChat",
+            Audience = "SimpleChat",
+            SigningKey = "mysupersecret_secretkey!123",
+            Lifetime = TimeSpan.FromDays(10)
+        };
+
+        public virtual SymmetricSecurityKey GetSymmetricSecurityKey()
+        {
+            return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SigningKey));
         }
     }
 }

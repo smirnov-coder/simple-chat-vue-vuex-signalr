@@ -7,7 +7,7 @@ for (let index = 0; index < 5; index++) {
         id: index.toString(),
         name: faker.name.findName(),
         avatar: faker.image.avatar(),
-        provider: "Google",
+        provider: "Facebook",
         connectionIds: []
     });
 }

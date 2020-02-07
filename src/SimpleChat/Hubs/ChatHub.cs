@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using SimpleChat.Infrastructure.Constants;
+using SimpleChat.Infrastructure.Helpers;
 using SimpleChat.Models;
 
 namespace SimpleChat.Hubs
@@ -14,13 +15,15 @@ namespace SimpleChat.Hubs
     [Authorize]
     public class ChatHub : Hub<IChatClient>
     {
-        private IConfiguration _configuration;
-        private UserCollection _users;
+        private IGuard _guard;
+        //private IConfiguration _configuration;
+        private IUserCollection _users;
 
-        public ChatHub(UserCollection users, IConfiguration configuration)
+        public ChatHub(IUserCollection users, IConfiguration configuration, IGuard guard = null)
         {
-            _users = users;
-            _configuration = configuration;
+            _guard = guard ?? new Guard();
+            _users = _guard.EnsureObjectParamIsNotNull(users, nameof(users));
+            //_configuration = _guard.EnsureObjectParamIsNotNull(configuration, nameof(configuration));
         }
 
         [HubMethodName("SendMessage")]

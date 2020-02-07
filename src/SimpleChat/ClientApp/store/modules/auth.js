@@ -31,6 +31,7 @@ const mutations = {
 const actions = {
     // Производит авторизацию пользователя на сервере.
     [ActionTypes.AUTHENTICATE]: ({ commit, dispatch }) => {
+        //console.log("authenticating...");//
         let accessToken = readToken();
         if (!accessToken) {
             commit(MutationTypes.CLEAR_AUTH_STATE);
@@ -44,6 +45,7 @@ const actions = {
         };
         fetch("/api/auth/check", options)
             .then(response => {
+                //console.log("got response");//
                 if (response.ok) {
                     return response.json();
                 }
@@ -51,17 +53,39 @@ const actions = {
             })
             .then(result => {
                 if ("type" in result) {
-                    if (result.type === "auth_check") {
-                        commit(MutationTypes.SET_IS_AUTHENTICATED, result.isAuthenticated);
-                        dispatch(ActionTypes.CURRENT_USER, {
-                            ...result.user,
-                            connectionIds: []
-                        });
-                    } else if (result.type === "error") {
-                        /// TODO: ???????????????????????????
-                        dispatch(ActionTypes.SIGN_OUT);
-                    } else {
-                        throw new Error("Неизвестный тип результата операции.");
+                    switch (result.type) {
+                        case "auth_check": {
+                            if (result.isAuthenticated) {
+                                dispatch(ActionTypes.CURRENT_USER, {
+                                    ...result.user,
+                                    connectionIds: []
+                                });
+                                commit(MutationTypes.SET_IS_AUTHENTICATED, result.isAuthenticated);
+                            } else {
+                                dispatch(ActionTypes.SIGN_OUT);
+                            }
+                            break;
+                        }
+
+                        case "external_login_error": {
+                            //console.log("external login error");//
+                            commit(MutationTypes.SET_ERROR, {
+                                message: result.message
+                            });
+                            break;
+                        }
+
+                        case "error": {
+                            /// TODO: ???????????????????????????
+                            //console.log("error");//
+                            commit(MutationTypes.SET_ERROR, result.error);
+                            dispatch(ActionTypes.SIGN_OUT);
+                            break;
+                        }
+
+                        default: {
+                            throw new Error("Неизвестный тип результата операции.");
+                        }
                     }
                 } else {
                     throw new Error("Неизвестная структура результата операции.");
@@ -71,7 +95,10 @@ const actions = {
     },
 
     // Выход из приложения.
-    [ActionTypes.SIGN_OUT]: ({ commit }) => commit(MutationTypes.CLEAR_AUTH_STATE),
+    [ActionTypes.SIGN_OUT]: ({ commit }) => {
+        commit(MutationTypes.CLEAR_AUTH_STATE);
+        // TODO: delete access token
+    },
 
     [ActionTypes.SIGN_IN_RESULT]: ({ commit, dispatch }, result) => {
         if ("type" in result) {
@@ -80,28 +107,25 @@ const actions = {
                     storeToken(result.accessToken);
                     dispatch(ActionTypes.AUTHENTICATE);
                     break;
-                };
+                }
 
                 case "confirm_sign_in": {
                     commit(MutationTypes.SET_CONFIRM_DATA, result);
                     break;
-                };
+                }
 
                 case "email_required": {
                     commit(MutationTypes.SET_ERROR, {
                         message: result.message
                     });
-                };
+                    break;
+                }
 
                 case "error": {
                     commit(MutationTypes.SET_ERROR, {
                         message: result.message,
                         errors: result.errors
                     });
-                };
-
-                default: {
-
                 }
             }
         }
@@ -146,7 +170,7 @@ const actions = {
                 }
             })
             .catch(error => console.log("[SimpleChat] Не удалось подтвердить вход на сайт через внешнего провайдера.", error));
-    },
+    }
 };
 
 const getters = {
@@ -155,7 +179,7 @@ const getters = {
 
     [GetterTypes.ERROR]: state => state.error,
 
-    [GetterTypes.CONFIRM_DATA]: state => state.confirmData,
+    [GetterTypes.CONFIRM_DATA]: state => state.confirmData
 };
 
 export default {

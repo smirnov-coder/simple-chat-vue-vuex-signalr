@@ -12,7 +12,7 @@ const mutations = {
     [MutationTypes.SET_CONNECTION]: (state, connection) => state.connection = connection,
 
     // Закрывает подключение к хабу.
-    [MutationTypes.CLEAR_CONNECTION]: state => state.connection = null,
+    [MutationTypes.CLEAR_CONNECTION]: state => state.connection = null
 };
 
 const actions = {
@@ -25,7 +25,7 @@ const actions = {
                 // Если получили ответ 401, значит 'access_token' не валиден, выходим из приложения.
                 case 401: {
                     console.error("[SimpleChat] Получен ответ 401 (Unauthorized). Возможно, 'access_token' просрочен " +
-                        "или отсутствует.")
+                        "или отсутствует.");
                     dispatch(ActionTypes.SIGN_OUT);
                     break;
                 }
@@ -33,8 +33,8 @@ const actions = {
                 // Если получили ответ 404, значит на сервере не найдено соединение, скорее всего потому, что оно было
                 // принудительно закрыто сервером из-за истечения таймаута.
                 case 404: {
-                    console.error("[SimpleChat] Получен ответ 404 (Not Found). Возможно, сервер закрыл соединение из-за " +
-                        "истечения таймаута.");
+                    console.error("[SimpleChat] Получен ответ 404 (Not Found). Возможно, сервер закрыл соединение " +
+                        "из-за истечения таймаута.");
                     dispatch(ActionTypes.CONNECTION_ERROR);
                     break;
                 }
@@ -53,7 +53,8 @@ const actions = {
             })
             .configureLogging(SignalR.LogLevel.Information)
             .build();
-        // Увеличить таймаут, чтобы сервер не закрывал принудительно соединение. Значение по умолчанию 30 сек. слишком мало.
+        // Увеличить таймаут, чтобы сервер не закрывал принудительно соединение.
+        // Значение по умолчанию 30 сек. слишком мало.
         connection.serverTimeoutInMilliseconds = 60000;
 
         // Обработчик получения сообщения чата.
@@ -99,7 +100,7 @@ const actions = {
                 dispatch(ActionTypes.CONNECTION_ERROR);
                 console.error("[SimpleChat] Соединение аварийно закрыто из-за ошибки.", error);
             } else {
-                console.log("[SimpleChat] Соединение успешно закрыто.")
+                console.log("[SimpleChat] Соединение успешно закрыто.");
             }
         });
 
@@ -140,7 +141,7 @@ const actions = {
     },
 
     // Выход из приложения.
-    [ActionTypes.SIGN_OUT]: ({ dispatch }) => dispatch(ActionTypes.DISCONNECT_HUB),
+    [ActionTypes.SIGN_OUT]: ({ dispatch }) => dispatch(ActionTypes.DISCONNECT_HUB)
 };
 
 export default {

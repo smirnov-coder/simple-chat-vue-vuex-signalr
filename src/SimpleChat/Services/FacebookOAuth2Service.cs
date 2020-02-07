@@ -9,33 +9,47 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using SimpleChat.Infrastructure.Constants;
+using SimpleChat.Infrastructure.Helpers;
 using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
-    public class FacebookOAuth2Service : OAuth2ServiceBase
+    public class FacebookOAuth2Service : OAuth2ServiceBase, IFacebookOAuth2Service
     {
-        private const string BASE_URL = "https://graph.facebook.com";
-        private readonly string ACCESS_TOKEN_ENDPOINT = $"{BASE_URL}/v3.3/oauth/access_token";
+        private const string AccessTokenEndpoint = "https://graph.facebook.com/v3.3/oauth/access_token";
+        private const string UserInfoEndpoint = "https://graph.facebook.com/me";
 
-        public FacebookOAuth2Service(IConfiguration configuration)
-            : base(configuration, "Authentication:Facebook:AppId", "Authentication:Facebook:AppSecret", ExternalProvider.Facebook)
-        { }
+        public FacebookOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
+            : this(configuration, uriHelper, null, null)
+        {
+        }
+
+        public FacebookOAuth2Service(
+            IConfiguration configuration,
+            IUriHelper uriHelper,
+            IJsonHelper jsonHelper,
+            IGuard guard)
+            : base(ConfigurationKeys.FacebookAppId, ConfigurationKeys.FacebookAppSecret, ExternalProvider.Facebook,
+                  configuration, uriHelper, jsonHelper, guard)
+        {
+        }
 
         protected override HttpRequestMessage CreateAccessTokenRequest(string code)
         {
-            string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(AccessTokenEndpoint, new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["redirect_uri"] = RedirectUri,
-                ["code"] = code,
-                ["auth_type"] = "rerequest"
+                ["code"] = code
             });
             return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
 
-        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse) => parsedResponse.ContainsKey("error");
+        protected override bool IsErrorAccessTokenResponse(JObject parsedResponse)
+        {
+            return parsedResponse.ContainsKey("error");
+        }
 
         protected override void CollectErrorData(IDictionary data, JObject dataSource)
         {
@@ -73,9 +87,9 @@ namespace SimpleChat.Services
 
         private async Task ExchangeShortLivedAccessTokenAsync(string accessToken)
         {
-            EnsureStringParamIsNotNullOrEmpty(accessToken, nameof(accessToken));
+            _guard.EnsureStringParamIsNotNullOrEmpty(accessToken, nameof(accessToken));
 
-            string requestUri = QueryHelpers.AddQueryString(ACCESS_TOKEN_ENDPOINT, new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(AccessTokenEndpoint, new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
@@ -83,21 +97,29 @@ namespace SimpleChat.Services
                 ["fb_exchange_token"] = accessToken,
                 ["access_token"] = accessToken
             });
-            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), default(CancellationToken));
-            if (!response.IsSuccessStatusCode)
-                throw new OAuth2ServiceException($"Не удалось подключиться к '{_providerName}' для обмена краткосрочного маркера доступа на долгосрочный.");
+            var response = await HttpClient.SendAsync(
+                new HttpRequestMessage(HttpMethod.Get, requestUri), default(CancellationToken));
+
+            if (await IsConnectionErrorResponseAsync(response))
+            {
+                throw new OAuth2ServiceException($"Не удалось подключиться к '{_providerName}' для обмена " +
+                    $"краткосрочного маркера доступа на долгосрочный.");
+            }
 
             string json = await response.Content.ReadAsStringAsync();
-            var exchangeTokenResponse = JObject.Parse(json);
+            var exchangeTokenResponse = _jsonHelper.Parse(json);
             if (IsErrorAccessTokenResponse(exchangeTokenResponse))
-                ThrowException("Не удалось обменять краткосрочный маркер доступа на долгострочный.", exchangeTokenResponse);
+            {
+                ThrowException("Не удалось обменять краткосрочный маркер доступа на долгосрочный.",
+                    exchangeTokenResponse);
+            }
 
             AccessToken = (string)exchangeTokenResponse["access_token"];
         }
 
         protected override HttpRequestMessage CreateUserInfoRequest()
         {
-            string requestUri = QueryHelpers.AddQueryString($"{BASE_URL}/me", new Dictionary<string, string>
+            string requestUri = _uriHelper.AddQueryString(UserInfoEndpoint, new Dictionary<string, string>
             {
                 ["fields"] = "id,name,email,picture",
                 ["access_token"] = AccessToken
