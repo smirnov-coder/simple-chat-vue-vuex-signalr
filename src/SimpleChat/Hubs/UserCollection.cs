@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace SimpleChat.Hubs
 {
+    /// <inheritdoc cref="IUserCollection"/>
     public class UserCollection : IUserCollection
     {
         private List<User> _users = new List<User>();

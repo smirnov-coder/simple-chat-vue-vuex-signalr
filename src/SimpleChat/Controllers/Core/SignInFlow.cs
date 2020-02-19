@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Core
 {
+    /// <inheritdoc cref="ISignInFlow"/>
     public class SignInFlow : ChainOfResponsibility, ISignInFlow
     {
         public SignInFlow(IServiceProvider serviceProvider) : this(serviceProvider, null)

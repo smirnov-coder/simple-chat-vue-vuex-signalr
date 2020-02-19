@@ -5,6 +5,10 @@
     <UserSecretsId>a117c0f5-08a2-42f4-9d50-e093a9daa31a</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="yarn-error.log" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="MailKit" Version="2.2.0" />
@@ -17,7 +21,6 @@
   <ItemGroup>
     <Folder Include="ClientApp\assets\favicon\" />
     <Folder Include="ClientApp\assets\fonts\" />
-    <Folder Include="ClientApp\assets\images\" />
     <Folder Include="Data\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>

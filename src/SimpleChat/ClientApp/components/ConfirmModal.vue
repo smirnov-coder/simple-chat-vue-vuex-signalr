@@ -4,7 +4,7 @@
               persistent>
         <v-card>
             <v-card-title>
-                <v-icon left color="yellow">mdi-alert-circle-outline</v-icon>
+                <v-icon left color="orange">mdi-alert-circle-outline</v-icon>
                 Внимание
             </v-card-title>
             <v-divider />
@@ -35,7 +35,7 @@
 </template>
 
 <script>
-    import { ActionTypes, GetterTypes } from "@/store/constants";
+    import { ActionTypes, GetterTypes } from "@/scripts/constants";
 
     export default {
         data() {
@@ -48,30 +48,30 @@
             cancel() {
                 this.show = false;
                 this.code = false;
-                this.$store.dispatch(ActionTypes.SIGN_IN_CANCELED);
+                this.$store.dispatch(ActionTypes.CANCEL_SIGN_IN);
             },
             continueSignIn() {
                 this.show = false;
-                this.$store.dispatch(ActionTypes.SIGN_IN_CONFIRMED, {
+                this.$store.dispatch(ActionTypes.CONFIRM_SIGN_IN, {
                     code: this.code,
-                    sessionId: this.confirmData.sessionId
+                    sessionId: this.confirmationData.sessionId
                 });
                 this.code = "";
             }
         },
         computed: {
-            confirmData() {
-                return this.$store.getters[GetterTypes.CONFIRM_DATA];
+            confirmationData() {
+                return this.$store.getters[GetterTypes.CONFIRMATION_DATA];
             },
             email() {
-                return this.confirmData ? this.confirmData.email : "";
+                return this.confirmationData ? this.confirmationData.email : "";
             },
             provider() {
-                return this.confirmData ? this.confirmData.provider : "";
+                return this.confirmationData ? this.confirmationData.provider : "";
             }
         },
         watch: {
-            confirmData(value) {
+            confirmationData(value) {
                 if (value) {
                     this.show = true;
                 } else {

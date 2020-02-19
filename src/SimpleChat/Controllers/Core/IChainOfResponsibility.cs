@@ -4,23 +4,22 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Core
 {
+    /// <summary>
+    /// Реализация классического паттерна "Цепочка обязанностей". Позволяет создать цепочку операций (шагов),
+    /// выполняемых при обработке запроса к <see cref="AuthController"/>.
+    /// </summary>
     public interface IChainOfResponsibility
     {
+        /// <summary>
+        /// Добавляет обработчик в цепочку обработчиков.
+        /// </summary>
+        /// <param name="handler">Обработчик запроса (операция).</param>
         void AddHandler(IHandler handler);
 
+        /// <summary>
+        /// Асинхронно запускает выполнение цепочки обработчиков.
+        /// </summary>
+        /// <param name="context">Контекст запроса к <see cref="AuthController"/>.</param>
         Task<IAuthResult> RunAsync(IContext context);
-    }
-
-    // Для возможности легко замокать при тестировании.
-    public interface IAuthenticationFlow : IChainOfResponsibility
-    {
-    }
-
-    public interface ISignInFlow : IChainOfResponsibility
-    {
-    }
-
-    public interface IConfirmSignInFlow : IChainOfResponsibility
-    {
     }
 }

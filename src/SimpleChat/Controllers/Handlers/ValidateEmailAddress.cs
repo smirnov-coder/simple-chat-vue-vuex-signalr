@@ -9,7 +9,12 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class ValidateEmailAddress : Handler
+    /// <summary>
+    /// Представляет собой процесс проверки наличия e-mail адреса в даннх пользователя, полученных от внешнего
+    /// OAuth2-провайдера.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class ValidateEmailAddress : HandlerBase
     {
         private UserInfoValidator _validator;
 
@@ -29,11 +34,17 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста данные пользователя.
             var userInfo = context.Get(UserInfoValidator.ContextKey) as ExternalUserInfo;
 
+            // Если внешний провайдер по каким-то причинам не предоставил e-mail адрес пользователя, то прервать цепочку
+            // обработчиков и вернуть сообщение об ошибке, т.к. e-mail адрес обязателен для регистрации нового
+            // пользователя на нашем сайте.
             IAuthResult result = null;
             if (string.IsNullOrWhiteSpace(userInfo.Email))
                 result = new EmailRequiredResult(userInfo.Provider);
+
+            // Иначе передать управление следующему обработчику, вернув null.
             return Task.FromResult(result);
         }
     }

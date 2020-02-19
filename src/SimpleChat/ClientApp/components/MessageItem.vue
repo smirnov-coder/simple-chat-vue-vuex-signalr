@@ -1,5 +1,5 @@
 <template>
-    <v-card class="mb-2 pa-2">
+    <v-card flat hover class="mb-2 pa-2">
         <v-layout>
             <v-flex shrink>
                 <v-avatar size="36" tile>

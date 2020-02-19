@@ -1,27 +1,26 @@
-using Microsoft.AspNetCore.Identity;
 using SimpleChat.Controllers.Core;
 using SimpleChat.Controllers.Validators;
-using SimpleChat.Extensions;
 using SimpleChat.Infrastructure.Constants;
 using SimpleChat.Infrastructure.Helpers;
 using SimpleChat.Models;
 using SimpleChat.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class PickUpProviderData : Handler
+    /// <summary>
+    /// Представляет собой процесс подбора данных, необходимых для последующих обработчиков, на основе имени внешнего
+    /// OAuth2-провайдера.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class PickUpProviderData : HandlerBase
     {
         private IOAuth2Service _facebook;
         private IOAuth2Service _vkontakte;
         private IOAuth2Service _odnoklassniki;
         private ProviderValidator _providerValidator;
 
+        #region Constructors
         public PickUpProviderData(
             IFacebookOAuth2Service facebook,
             IVKontakteOAuth2Service vkontakte,
@@ -44,6 +43,7 @@ namespace SimpleChat.Controllers.Handlers
             : this(facebook, vkontakte, odnoklassniki, providerValidator, null)
         {
         }
+        #endregion
 
         protected override bool CanHandle(IContext context)
         {
@@ -52,8 +52,14 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста имя внешнего провайдера.
             string provider = context.Get(ProviderValidator.ContextKey) as string;
 
+            // Подобрать следующие данные:
+            // - тип клайма полного имени пользователя;
+            // - тип клайма аватара;
+            // - тип клайма маркера доступа;
+            // - OAuth2-сервис.
             string
                 nameClaimType = string.Empty,
                 avatarClaimType = string.Empty,
@@ -89,10 +95,12 @@ namespace SimpleChat.Controllers.Handlers
                     break;
             }
 
+            // Сохранить в контексте по соответствующим ключам все выбранные данные.
             context.Set(NameClaimTypeValidator.ContextKey, nameClaimType);
             context.Set(AvatarClaimTypeValidator.ContextKey, avatarClaimType);
             context.Set(AccessTokenClaimTypeValidator.ContextKey, accessTokenClaimType);
             context.Set(OAuth2ServiceValidator.ContextKey, service);
+
             return Task.FromResult(result);
         }
     }

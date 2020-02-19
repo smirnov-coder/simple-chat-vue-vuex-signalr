@@ -1,15 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using SimpleChat.Controllers.Handlers;
 using SimpleChat.Infrastructure.Helpers;
-using SimpleChat.Models;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Core
 {
+    /// <inheritdoc cref="IAuthenticationFlow"/>
     public class AuthenticationFlow : ChainOfResponsibility, IAuthenticationFlow
     {
         public AuthenticationFlow(IServiceProvider serviceProvider) : this(serviceProvider, null)

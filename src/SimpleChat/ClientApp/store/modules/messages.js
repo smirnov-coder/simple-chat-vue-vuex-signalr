@@ -1,6 +1,7 @@
-import faker from "faker";
-import { MutationTypes, ActionTypes, GetterTypes } from "@/store/constants";
+import { MutationTypes, ActionTypes, GetterTypes, MESSAGES_MAX_LENGTH } from "@/scripts/constants";
+import FakesGenerator from "@/scripts/fakes-generator";
 
+// Представляет собой сообщение чата.
 export class Message {
     constructor(author, text) {
         this.author = author;
@@ -8,20 +9,19 @@ export class Message {
     }
 }
 
-const fakeMessages = [];
-for (var index = 0; index < 10; index++) {
-    fakeMessages.push(new Message(
-        faker.random.number({ min: 0, max: 4 }),
-        faker.lorem.text()
-    ));
-}
+const fakeMessages = new FakesGenerator().getFakeMessages();
 
+//
+// State
+//
 const state = {
-    messages: [],//fakeMessages,
-    maxLength: 5, // Пороговое значение размера коллекции сообщений.
-    sliceStartIndex: 1
+    // Коллекция сообщений чата.
+    messages: []//fakeMessages
 };
 
+//
+// Mutations
+//
 const mutations = {
     // Очищает состояние модуля.
     [MutationTypes.CLEAR_MESSAGES_STATE]: state => state.messages = [],
@@ -30,30 +30,36 @@ const mutations = {
     [MutationTypes.ADD_MESSAGE]: (state, message) => state.messages.push(message),
 
     // Устанавливает коллекцию сообщений.
-    [MutationTypes.SET_MESSAGES]: (state, messages) => state.messages = messages,
+    [MutationTypes.SET_MESSAGES]: (state, messages) => state.messages = messages
 };
 
+//
+// Actions
+//
 const actions = {
-    // Выход из приложения.
+    // Выполняет выход из приложения.
     [ActionTypes.SIGN_OUT]: ({ commit }) => commit(MutationTypes.CLEAR_MESSAGES_STATE),
 
-    // Добавляет сообщение в коллекцию сообщений.
+    // Обработчик, срабатывающий при получении нового сообщения чата.
     [ActionTypes.RECEIVED_MESSAGE]: ({ commit, dispatch, state }, message) => {
         commit(MutationTypes.ADD_MESSAGE, message);
-        if (state.messages.length > state.maxLength) {
+        if (state.messages.length > MESSAGES_MAX_LENGTH) {
             dispatch(ActionTypes.REDUCE_MESSAGES);
         }
     },
 
     // Урезает коллекцию сообщений для уменьшения количества узлов DOM-дерева.
     [ActionTypes.REDUCE_MESSAGES]: ({ commit, state }) => {
-        let messages = state.messages.slice(state.sliceStartIndex);
+        let sliceStartIndex = 1;
+        let messages = state.messages.slice(sliceStartIndex);
         commit(MutationTypes.SET_MESSAGES, messages);
     }
 };
 
+//
+// Getters
+//
 const getters = {
-    // Коллекция сообщений.
     [GetterTypes.MESSAGES]: state => state.messages
 };
 

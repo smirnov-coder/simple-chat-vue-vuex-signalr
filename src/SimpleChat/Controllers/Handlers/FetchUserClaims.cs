@@ -13,11 +13,15 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class FetchUserClaims : Handler
+    /// <summary>
+    /// Представляет собой процесс извлечения коллекции клаймов пользователя из хранилища.
+    /// </summary>
+    public class FetchUserClaims : HandlerBase
     {
         private UserManager<IdentityUser> _userManager;
         private IdentityUserValidator _validator;
 
+        #region Constructors
         public FetchUserClaims(
             UserManager<IdentityUser> userManager,
             IdentityUserValidator identityUserValidator)
@@ -34,6 +38,7 @@ namespace SimpleChat.Controllers.Handlers
             _userManager = _guard.EnsureObjectParamIsNotNull(userManager, nameof(userManager));
             _validator = _guard.EnsureObjectParamIsNotNull(identityUserValidator, nameof(identityUserValidator));
         }
+        #endregion
 
         protected override bool CanHandle(IContext context)
         {
@@ -42,15 +47,24 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override async Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста информацию о пользователе.
             var identityUser = context.Get(IdentityUserValidator.ContextKey) as IdentityUser;
 
+            // Извлечь коллекию клаймов пользователя из хранилища.
             IList<Claim> userClaims = await _userManager.GetClaimsAsync(identityUser);
+
+            // Если по каким-то причинам не удалось извлечь коллекцию клаймов пользователя или коллекци пуста, то
+            // прервать цепочку обработчиков и вернуть сообщение об ошибке.
             if (userClaims == null || !userClaims.Any())
             {
                 return await Task.FromResult<IAuthResult>(new ErrorResult("Не удалось извлечь из хранилища " +
                     "информацию, необходимую для аутентификации пользователя."));
             }
+
+            // Иначе сохранить коллекцию клаймов пользователя в контексте.
             context.Set(UserClaimsValidator.ContextKey, userClaims);
+
+            // Передать управление следующему обработчику, вернув null.
             return default(IAuthResult);
         }
     }

@@ -1,16 +1,21 @@
 using SimpleChat.Controllers.Core;
 using SimpleChat.Infrastructure.Helpers;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimpleChat.Controllers.Validators
 {
+    /// <summary>
+    /// Инкапсулирует логику проверки пригодности для использования строкового значения данных, хранящегося в контексте
+    /// <see cref="IContext"/>.
+    /// </summary>
     public class StringValidator : ValidatorBase
     {
+        /// <inheritdoc cref="ValidatorBase(string)"/>
         public StringValidator(string key) : this(key, null)
         {
         }
 
+        /// <inheritdoc cref="ValidatorBase(string, IGuard)"/>
         public StringValidator(string key, IGuard guard) : base(key, guard)
         {
         }

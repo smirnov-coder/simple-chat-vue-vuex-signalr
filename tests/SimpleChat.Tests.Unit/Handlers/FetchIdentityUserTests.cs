@@ -63,7 +63,7 @@ namespace SimpleChat.Tests.Unit.Handlers
             // arrange
             var testIdentityUser = new IdentityUser();
             var mockAuthResult = new Mock<IAuthResult>();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             mockHandler.Setup(x => x.HandleAsync(It.IsAny<IContext>())).ReturnsAsync(mockAuthResult.Object);
             _mockUserManager.Setup(x => x.FindByNameAsync(TestConstants.TestUserName)).ReturnsAsync(testIdentityUser);
             _mockUserNameValidator.Setup(x => x.Validate(_testContext, It.IsAny<ICollection<string>>()))
@@ -85,7 +85,7 @@ namespace SimpleChat.Tests.Unit.Handlers
         {
             // arrange
             var mockAuthResult = new Mock<IAuthResult>();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             _mockUserManager.Setup(x => x.FindByNameAsync(TestConstants.TestUserName))
                 .ReturnsAsync(default(IdentityUser));
             _mockUserNameValidator.Setup(x => x.Validate(_testContext, It.IsAny<ICollection<string>>()))

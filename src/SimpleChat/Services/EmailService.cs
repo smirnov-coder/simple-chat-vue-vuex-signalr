@@ -12,12 +12,16 @@ using SimpleChat.Infrastructure.Helpers;
 
 namespace SimpleChat.Services
 {
+    /// <inheritdoc cref="IEmailService"/>
     public class EmailService : IEmailService, IDisposable
     {
         private IConfiguration _configuration;
         private IGuard _guard;
 
         private SmtpClient _smtpClient = new SmtpClient();
+        /// <summary>
+        /// Компонент для отправки e-mail по протоколу SMTP.
+        /// </summary>
         public virtual SmtpClient SmtpClient
         {
             get => _smtpClient;
@@ -29,7 +33,18 @@ namespace SimpleChat.Services
         private readonly string _userName;
         private readonly string _password;
 
-        public EmailService(IConfiguration configuration, IGuard guard = null)
+        /// <inheritdoc cref="EmailService(IConfiguration, IGuard)"/>
+        public EmailService(IConfiguration configuration) : this(configuration, null)
+        {
+        }
+
+        /// <summary>
+        /// Создаёт новый объект класса.
+        /// </summary>
+        /// <param name="configuration">Компонент доступа к файлу настроек приложения appsettings.json.</param>
+        /// <param name="guard">Компонент для работы согласно технике защитного программирования.</param>
+        /// <exception cref="InvalidOperationException"/>
+        public EmailService(IConfiguration configuration, IGuard guard)
         {
             _guard = guard ?? new Guard();
             _configuration = _guard.EnsureObjectParamIsNotNull(configuration, nameof(configuration));
@@ -46,6 +61,13 @@ namespace SimpleChat.Services
             }
         }
 
+        /// <summary>
+        /// Извлекает из файла настроек приложения appsettings.json значение по заданному ключу. Если значение
+        /// отсутствует, выбрасывается исключение <see cref="InvalidOperationException"/>.
+        /// </summary>
+        /// <param name="key">Ключ, по которому доступны данные в файле настроек приложения appsettings.json.</param>
+        /// <returns>Строковое значение параметра настроек приложения.</returns>
+        /// <exception cref="InvalidOperationException"/>
         private string EnsureValueExists(string key)
         {
             string value = _configuration[key];

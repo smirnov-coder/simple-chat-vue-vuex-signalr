@@ -3,19 +3,38 @@ using SimpleChat.Infrastructure.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Validators
 {
+    /// <summary>
+    /// Абстрактный базовый класс валидатора, реализующий интерфейс <see cref="IValidator"/>.
+    /// </summary>
+    /// <inheritdoc cref="IValidator"/>
     public abstract class ValidatorBase : IValidator
     {
         protected IGuard _guard;
+        /// <summary>
+        /// Ключ, по которому в контексте <see cref="IContext"/> доступны данные для проверки.
+        /// </summary>
+        /// <remarks>
+        /// Хочется иметь в каждом производном классе валидатора константное поле ключа для удобной работы
+        /// IntelliSense. Данное закрытое поле служит как источник xml-комментария к константному полю.
+        /// </remarks>
         protected string _key;
 
+        /// <summary>
+        /// Основной конструктор с одним параметром.
+        /// </summary>
+        /// <param name="key">Ключ, по которому в контексте <see cref="IContext"/> доступны данные для проверки.</param>
         public ValidatorBase(string key) : this(key, null)
         {
         }
 
+        /// <summary>
+        /// Вспомогательный конструктор с двумя параметрами. Используется для тестирования.
+        /// </summary>
+        /// <param name="guard">Компонент, инкапсулирующий логику валидации входных параметров.</param>
+        /// <inheritdoc cref="ValidatorBase(string)"/>
         public ValidatorBase(string key, IGuard guard)
         {
             _guard = guard ?? new Guard();
@@ -40,6 +59,11 @@ namespace SimpleChat.Controllers.Validators
             return !errors.Any();
         }
 
+        /// <summary>
+        /// Выполняет проверку пригодности для использования значения данных, хранящегося в контексте
+        /// <see cref="IContext"/>, специфичную для каждого производного класса.
+        /// </summary>
+        /// <inheritdoc cref="IValidator.Validate"/>
         protected abstract void InternalValidate(IContext context, ICollection<string> errors);
     }
 }

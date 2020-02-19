@@ -27,7 +27,7 @@
 
 <script>
     import { Message } from "@/store/modules/messages";
-    import { ActionTypes, GetterTypes } from "@/store/constants";
+    import { ActionTypes, GetterTypes } from "@/scripts/constants";
 
     export default {
         data() {
@@ -47,7 +47,6 @@
                         name: this.user.name,
                         avatar: this.user.avatar
                     }, this.text);
-                    //console.log("message", message);///
                     this.$store.dispatch(ActionTypes.SEND_MESSAGE, message);
                     this.text = "";
                 }

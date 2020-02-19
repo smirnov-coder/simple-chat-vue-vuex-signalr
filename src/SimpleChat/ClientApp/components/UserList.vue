@@ -1,7 +1,7 @@
 <template>
-    <v-list dense>
+    <v-list dense class="user-list">
         <v-list-tile v-if="mini">
-            <v-list-tile-avatar>
+            <v-list-tile-avatar class="mt-2">
                 <v-badge v-if="showBadge"
                          small
                          overlap>
@@ -23,7 +23,7 @@
 
 <script>
     import UserItem from "@/components/UserItem";
-    import { GetterTypes } from "@/store/constants";
+    import { GetterTypes } from "@/scripts/constants";
 
     export default {
         props: {
@@ -50,3 +50,13 @@
         }
     };
 </script>
+
+<style>
+    .user-list {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        height: 1px;
+        overflow-y: auto;
+    }
+</style>

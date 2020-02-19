@@ -111,7 +111,7 @@ namespace SimpleChat.Tests.Unit.Handlers
             // arrange 
             var testIdentityUser = _testContext.Get(IdentityUserValidator.ContextKey) as IdentityUser;
             var mockAuthResult = new Mock<IAuthResult>();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             mockHandler.Setup(x => x.HandleAsync(It.IsAny<IContext>())).ReturnsAsync(mockAuthResult.Object);
             _mockIdentityUserValidator.Setup(x => x.Validate(_testContext, It.IsAny<ICollection<string>>()))
                 .Returns(true);

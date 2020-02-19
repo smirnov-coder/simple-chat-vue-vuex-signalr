@@ -341,3 +341,4 @@ yarn-error.log
 .awcache/
 bundle-report.html
 .vscode
+.editorconfig

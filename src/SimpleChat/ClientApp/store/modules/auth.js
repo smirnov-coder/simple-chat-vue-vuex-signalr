@@ -1,185 +1,164 @@
-import { readToken, storeToken } from "@/scripts/utils";
-import { MutationTypes, ActionTypes, GetterTypes } from "@/store/constants";
+import { AuthApiClient } from "@/scripts/api/auth-api-client";
+import { OAuth2Client, OAuth2ClientOptionsBuilder } from "@/scripts/api/oauth2-client";
+import { ActionTypes, GetterTypes, MutationTypes } from "@/scripts/constants";
+import { ACCESS_TOKEN_STORAGE_KEY, clearToken, readToken, storeToken } from "@/scripts/utils";
 
+//
+// State
+//
 const state = {
+    // Показывает, что пользователь аутентифицирован на сервере.
     isAuthenticated: false,
+
+    // Ошибка работы с AuthСontroller.
     error: null,
-    confirmData: null
+
+    // Данные, необходимые для подтверждения первого входа на сайт через внешний OAuth2-провайдер.
+    confirmationData: null
 };
 
+//
+// Mutations
+//
 const mutations = {
-    // Устанавливает состояние модуля.
+    // Устанавливает значение флага аутентификации.
     [MutationTypes.SET_IS_AUTHENTICATED]: (state, isAuthenticated) => state.isAuthenticated = isAuthenticated,
 
-    [MutationTypes.SET_CONFIRM_DATA]: (state, { sessionId, email, provider }) => {
-        state.confirmData = {
+    // Устанавливает значение данных подтверждения первого входа на сайт через внешний OAuth2-провайдер.
+    [MutationTypes.SET_CONFIRMATION_DATA]: (state, { sessionId, email, provider }) => {
+        state.confirmationData = {
             sessionId,
             email,
             provider
         };
     },
 
+    // Очищает состояние модуля.
     [MutationTypes.CLEAR_AUTH_STATE]: (state) => {
         state.isAuthenticated = false;
         state.error = null;
-        state.confirmData = null;
+        state.confirmationData = null;
     },
 
-    [MutationTypes.SET_ERROR]: (state, error) => state.error = error,
+    // Устанавливает ошибку работы с AuthController.
+    [MutationTypes.SET_ERROR]: (state, error) => state.error = error
 };
 
+//
+// Actions
+//
 const actions = {
-    // Производит авторизацию пользователя на сервере.
+    // Выполняет аутентификацию пользователя на сервере.
     [ActionTypes.AUTHENTICATE]: ({ commit, dispatch }) => {
-        //console.log("authenticating...");//
         let accessToken = readToken();
         if (!accessToken) {
             commit(MutationTypes.CLEAR_AUTH_STATE);
+            console.log(`[SimpleChat] Отсутствует значение для ключа '${ACCESS_TOKEN_STORAGE_KEY}' в localStorage.`);
             return;
         }
         let options = {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${accessToken}`
-            }
-        };
-        fetch("/api/auth/check", options)
-            .then(response => {
-                //console.log("got response");//
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error(`Получен ответ с ошибкой ${response.status} (${response.statusText}).`);
-            })
-            .then(result => {
-                if ("type" in result) {
-                    switch (result.type) {
-                        case "auth_check": {
-                            if (result.isAuthenticated) {
-                                dispatch(ActionTypes.CURRENT_USER, {
-                                    ...result.user,
-                                    connectionIds: []
-                                });
-                                commit(MutationTypes.SET_IS_AUTHENTICATED, result.isAuthenticated);
-                            } else {
-                                dispatch(ActionTypes.SIGN_OUT);
-                            }
-                            break;
-                        }
-
-                        case "external_login_error": {
-                            //console.log("external login error");//
-                            commit(MutationTypes.SET_ERROR, {
-                                message: result.message
-                            });
-                            break;
-                        }
-
-                        case "error": {
-                            /// TODO: ???????????????????????????
-                            //console.log("error");//
-                            commit(MutationTypes.SET_ERROR, result.error);
-                            dispatch(ActionTypes.SIGN_OUT);
-                            break;
-                        }
-
-                        default: {
-                            throw new Error("Неизвестный тип результата операции.");
-                        }
-                    }
+            accessToken,
+            success: result => {
+                if (result.isAuthenticated) {
+                    dispatch(ActionTypes.CURRENT_USER, {
+                        ...result.user,
+                        connectionIds: []
+                    });
+                    commit(MutationTypes.SET_IS_AUTHENTICATED, result.isAuthenticated);
                 } else {
-                    throw new Error("Неизвестная структура результата операции.");
+                    dispatch(ActionTypes.SIGN_OUT);
                 }
-            })
-            .catch(error => console.log("[SimpleChat] Не удалось авторизовать пользователя на сервере.", error));
+            },
+            externalLoginError: result => handleErrorResult(commit, dispatch, result),
+            error: result => handleErrorResult(commit, dispatch, result)
+        };
+        AuthApiClient.authenticate(options)
+            .catch(error => console.error("[SimpleChat] Не удалось авторизовать пользователя на сервере.", error));
     },
 
-    // Выход из приложения.
+    // Выполняет выход из приложения.
     [ActionTypes.SIGN_OUT]: ({ commit }) => {
+        clearToken();
         commit(MutationTypes.CLEAR_AUTH_STATE);
-        // TODO: delete access token
     },
 
-    [ActionTypes.SIGN_IN_RESULT]: ({ commit, dispatch }, result) => {
-        if ("type" in result) {
-            switch (result.type) {
-                case "success": {
-                    storeToken(result.accessToken);
-                    dispatch(ActionTypes.AUTHENTICATE);
-                    break;
-                }
-
-                case "confirm_sign_in": {
-                    commit(MutationTypes.SET_CONFIRM_DATA, result);
-                    break;
-                }
-
-                case "email_required": {
-                    commit(MutationTypes.SET_ERROR, {
-                        message: result.message
-                    });
-                    break;
-                }
-
-                case "error": {
-                    commit(MutationTypes.SET_ERROR, {
-                        message: result.message,
-                        errors: result.errors
-                    });
-                }
-            }
+    // Выполняет вход в приложение через внешний OAuth2-провайдер.
+    [ActionTypes.SIGN_IN]: ({ commit, dispatch }, { uri, provider }) => {
+        let optionsBuilder = new OAuth2ClientOptionsBuilder();
+        let options = optionsBuilder
+            .withWindow(window)
+            .withRequestOrigin(window.globals.domain)
+            .withRequestUri(uri)
+            .withSuccessHandler(result => {
+                storeToken(result.accessToken);
+                dispatch(ActionTypes.AUTHENTICATE);
+            })
+            .withConfirmSignInHandler(result => {
+                commit(MutationTypes.SET_CONFIRMATION_DATA, result);
+            })
+            .withEmailRequiredHandler(result => {
+                commit(MutationTypes.SET_ERROR, {
+                    message: result.message
+                });
+            })
+            .withErrorHandler(result => {
+                commit(MutationTypes.SET_ERROR, {
+                    message: result.message,
+                    errors: result.errors
+                });
+            })
+            .build();
+        let oauth2Client = new OAuth2Client(options);
+        try {
+            oauth2Client.signIn();
+        } catch (e) {
+            console.error(`[SimpleChat] Не удалось войти на сайт через внешнего провайдера '${provider}'.`, e.message);
         }
     },
 
+    // Обработчик, вызываемый при закрытии модального окна с ошибкой.
     [ActionTypes.ERROR_HANDLED]: ({ commit }) => commit(MutationTypes.CLEAR_AUTH_STATE),
 
-    [ActionTypes.SIGN_IN_CANCELED]: ({ commit }) => commit(MutationTypes.CLEAR_AUTH_STATE),
+    // Обработчик, вызываемый при отмене входа на сайт.
+    [ActionTypes.CANCEL_SIGN_IN]: ({ commit }) => commit(MutationTypes.CLEAR_AUTH_STATE),
 
-    [ActionTypes.SIGN_IN_CONFIRMED]: ({ commit, dispatch }, { code, sessionId }) => {
+    // Выполняет подтверждение первого входа на сайт через внешний OAuth2-провайдер.
+    [ActionTypes.CONFIRM_SIGN_IN]: ({ commit, dispatch }, { code, sessionId }) => {
         let options = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
+            code,
+            sessionId,
+            success: result => {
+                storeToken(result.accessToken);
+                commit(MutationTypes.CLEAR_AUTH_STATE);
+                dispatch(ActionTypes.AUTHENTICATE);
             },
-            body: `code=${code}&sessionId=${sessionId}`
+            externalLoginError: result => handleErrorResult(commit, dispatch, result),
+            error: result => handleErrorResult(commit, dispatch, result)
         };
-        fetch("/api/auth/sign-in/confirm", options)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error(`Получен ответ с ошибкой ${response.status} (${response.statusText}).`);
-            })
-            .then(result => {
-                if ("type" in result) {
-                    if (result.type === "success") {
-                        storeToken(result.accessToken);
-                        commit(MutationTypes.CLEAR_AUTH_STATE);
-                        dispatch(ActionTypes.AUTHENTICATE);
-                    } else if (result.type === "error") {
-                        commit(MutationTypes.CLEAR_AUTH_STATE);
-                        commit(MutationTypes.SET_ERROR, {
-                            message: result.message,
-                            errors: result.errors
-                        });
-                    } else {
-                        throw new Error("Неизвестный тип результата операции.");
-                    }
-                } else {
-                    throw new Error("Неизвестная структура результата операции.");
-                }
-            })
-            .catch(error => console.log("[SimpleChat] Не удалось подтвердить вход на сайт через внешнего провайдера.", error));
+        AuthApiClient.confirmSignIn(options)
+            .catch(error => console.error("[SimpleChat] Не удалось подтвердить вход на сайт через внешний " +
+                "OAuth2-провайдер.", error));
     }
 };
 
+// Вспомогательная функция обработки результата с ошибкой.
+function handleErrorResult(commit, dispatch, result) {
+    dispatch(ActionTypes.SIGN_OUT);
+    commit(MutationTypes.SET_ERROR, {
+        message: result.message,
+        errors: result.errors
+    });
+}
+
+//
+// Getters
+//
 const getters = {
-    // Показывает, что пользователь осуществил вход в приложение.
     [GetterTypes.IS_AUTHENTICATED]: state => state.isAuthenticated,
 
     [GetterTypes.ERROR]: state => state.error,
 
-    [GetterTypes.CONFIRM_DATA]: state => state.confirmData
+    [GetterTypes.CONFIRMATION_DATA]: state => state.confirmationData
 };
 
 export default {

@@ -1,32 +1,39 @@
 <template>
-    <v-card>
-        <div>
-            Чтобы начать общаться в чате, войдите на сайт с помощью аккаунта в социальной сети.
+    <v-flex class="sign-in-area pa-4">
+        <div class="mb-3 text-xs-center font-weight-medium">
+            Чтобы начать общаться, войдите на сайт с помощью аккаунта в социальной сети.
         </div>
-        <v-divider />
-        <facebook-button />
-        <vkontakte-button />
-        <odnoklassniki-button />
-
-        <error-modal />
-        <confirm-modal />
-    </v-card>
+        <v-layout justify-center
+                  column>
+            <sign-in-button :provider="facebook"></sign-in-button>
+            <sign-in-button :provider="vkontakte"></sign-in-button>
+            <sign-in-button :provider="odnoklassniki"></sign-in-button>
+        </v-layout>
+    </v-flex>
 </template>
 
 <script>
-    import VkontakteButton from "@/components/VkontakteButton";
-    import FacebookButton from "@/components/FacebookButton";
-    import OdnoklassnikiButton from "@/components/OdnoklassnikiButton";
-    import ErrorModal from "@/components/ErrorModal";
-    import ConfirmModal from "@/components/ConfirmModal";
+    import SignInButton from "@/components/SignInButton";
+    import { Provider } from "@/scripts/provider-helper";
 
     export default {
         components: {
-            VkontakteButton,
-            FacebookButton,
-            OdnoklassnikiButton,
-            ErrorModal,
-            ConfirmModal,
+            SignInButton
         },
+        data() {
+            return {
+                facebook: Provider.FACEBOOK,
+                vkontakte: Provider.VKONTAKTE,
+                odnoklassniki: Provider.ODNOKLASSNIKI
+            }
+        }
     };
 </script>
+
+<style>
+    .sign-in-area {
+        width: 400px;
+        background-color: white;
+        flex-grow: 0 !important;
+    }
+</style>

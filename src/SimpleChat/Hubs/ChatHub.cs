@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Configuration;
 using SimpleChat.Infrastructure.Constants;
 using SimpleChat.Infrastructure.Helpers;
 using SimpleChat.Models;
@@ -13,19 +12,21 @@ using SimpleChat.Models;
 namespace SimpleChat.Hubs
 {
     [Authorize]
-    public class ChatHub : Hub<IChatClient>
+    public class ChatHub : Hub<IChatHubClient>
     {
         private IGuard _guard;
-        //private IConfiguration _configuration;
         private IUserCollection _users;
 
-        public ChatHub(IUserCollection users, IConfiguration configuration, IGuard guard = null)
+        public ChatHub(IUserCollection users, IGuard guard = null)
         {
             _guard = guard ?? new Guard();
             _users = _guard.EnsureObjectParamIsNotNull(users, nameof(users));
-            //_configuration = _guard.EnsureObjectParamIsNotNull(configuration, nameof(configuration));
         }
 
+        /// <summary>
+        /// Отправляет сообщение в чат.
+        /// </summary>
+        /// <param name="message">Новое сообщение.</param>
         [HubMethodName("SendMessage")]
         public async Task SendMessageAsync(ChatMessage message)
         {
@@ -39,17 +40,7 @@ namespace SimpleChat.Hubs
             // Пользователь не подключён к хабу совсем.
             if (user == null)
             {
-                user = new User
-                {
-                    Id = Context.UserIdentifier,
-                    Name = Context.User.FindFirstValue(CustomClaimTypes.FullName),
-                    Avatar = Context.User.FindFirstValue(CustomClaimTypes.Avatar),
-                    Provider = Context.User.FindFirstValue(CustomClaimTypes.Provider),
-                };
-                user.ConnectionIds.Add(Context.ConnectionId);
-                _users.AddUser(user);
-                await Clients.Others.NewUser(user);
-                await Clients.Caller.ConnectedUsers(user.ConnectionIds, _users.GetUsers().Where(item => item.Id != user.Id));
+                await ConnectNewUser();
             }
             // Пользователь уже имеет подключение к хабу.
             else 
@@ -66,28 +57,38 @@ namespace SimpleChat.Hubs
                     _users.AddConnection(user.Id, Context.ConnectionId);
                     await Clients.Clients(connectionIds).NewUserConnection(user.Id, Context.ConnectionId);
                     user = _users.GetUser(userId);
-                    await Clients.Caller.ConnectedUsers(user.ConnectionIds, _users.GetUsers().Where(item => item.Id != user.Id));
+                    await SendToCurrentUserConnectedUserCollection(user);
                 }
                 // Пользователь вошёл с другого устройства через ДРУГОГО логин-провайдера.
                 else
                 {
                     await Clients.User(user.Id).ForceSignOut();
                     _users.RemoveUser(user.Id);
-                    ///////////////////////////////
-                    user = new User
-                    {
-                        Id = Context.UserIdentifier,
-                        Name = Context.User.FindFirstValue(CustomClaimTypes.FullName),
-                        Avatar = Context.User.FindFirstValue(CustomClaimTypes.Avatar),
-                        Provider = Context.User.FindFirstValue(CustomClaimTypes.Provider),
-                    };
-                    user.ConnectionIds.Add(Context.ConnectionId);
-                    _users.AddUser(user);
-                    await Clients.Others.NewUser(user);
-                    await Clients.Caller.ConnectedUsers(user.ConnectionIds, _users.GetUsers().Where(item => item.Id != user.Id));
+                    await ConnectNewUser();
                 }
             }
-            await base.OnConnectedAsync();///////
+            await base.OnConnectedAsync();
+        }
+
+        private async Task ConnectNewUser()
+        {
+            var user = new User
+            {
+                Id = Context.UserIdentifier,
+                Name = Context.User.FindFirstValue(CustomClaimTypes.FullName),
+                Avatar = Context.User.FindFirstValue(CustomClaimTypes.Avatar),
+                Provider = Context.User.FindFirstValue(CustomClaimTypes.Provider),
+            };
+            user.ConnectionIds.Add(Context.ConnectionId);
+            _users.AddUser(user);
+            await Clients.Others.NewUser(user);
+            await SendToCurrentUserConnectedUserCollection(user);
+        }
+
+        private async Task SendToCurrentUserConnectedUserCollection(User user)
+        {
+            await Clients.Caller.ConnectedUsers(user.ConnectionIds, _users.GetUsers()
+                .Where(item => item.Id != user.Id));
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)

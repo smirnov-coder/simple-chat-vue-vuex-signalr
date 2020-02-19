@@ -29,7 +29,7 @@
     import MessageList from "@/components/MessageList";
     import ChatControls from "@/components/ChatControls";
     import ChatFooter from "@/components/ChatFooter";
-    import { ActionTypes } from "@/store/constants";
+    import { ActionTypes } from "@/scripts/constants";
 
     export default {
         components: {
@@ -46,7 +46,6 @@
             }
         },
         created() {
-            //console.log("[Chat component] created");//
             this.$store.dispatch(ActionTypes.CONNECT_HUB);
         },
     };

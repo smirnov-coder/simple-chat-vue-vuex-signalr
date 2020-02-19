@@ -45,7 +45,6 @@ namespace SimpleChat
             });
 
             services.AddIdentity<IdentityUser, IdentityRole>()
-                //.AddDefaultTokenProviders()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddAuthentication(options =>
@@ -89,7 +88,6 @@ namespace SimpleChat
                 options.EnableDetailedErrors = Environment.IsDevelopment();
                 options.ClientTimeoutInterval = TimeSpan.FromMinutes(1);
             });
-            //services.AddNodeServices(options => options.InvocationTimeoutMilliseconds = 90000);
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 

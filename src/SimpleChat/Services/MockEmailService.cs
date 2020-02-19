@@ -6,6 +6,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace SimpleChat.Services
 {
+    /// <summary>
+    /// Заглушка для работы с электронной почтой в режиме разработки.
+    /// </summary>
     public class MockEmailService : EmailService
     {
         private readonly string _emailFolder = @"D:\Emails";

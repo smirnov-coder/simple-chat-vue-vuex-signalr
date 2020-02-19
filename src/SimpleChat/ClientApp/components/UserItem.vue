@@ -1,9 +1,10 @@
 <template>
     <v-list-tile class="py-1">
         <v-list-tile-avatar>
-            <v-badge bottom
-                     overlap
-                     class="provider-badge">
+            <v-badge :color="badgeColor"
+                     class="provider-badge"
+                     bottom
+                     overlap>
                 <template v-slot:badge>
                     <v-icon color="white"
                             class="provider-badge__icon">
@@ -22,6 +23,8 @@
 </template>
 
 <script>
+    import { ProviderHelper } from "@/scripts/provider-helper";
+
     export default {
         props: {
             user: {
@@ -30,21 +33,14 @@
             }
         },
         computed: {
-            badgeIcon() {
-                switch (this.user.provider) {
-                    case "Facebook": return "mdi-facebook";
-                    case "ВКонтакте": return "mdi-vk";
-                    case "Одноклассники": return "mdi-odnoklassniki";
-                    default: return "mdi-help";
-                }
+            helper() {
+                return new ProviderHelper(this.user.provider);
             },
-            badgeBgColor() {
-                switch (this.user.provider) {
-                    case "Facebook": return "primary";
-                    case "ВКонтакте": return "primary";
-                    case "Одноклассники": return "orange";
-                    default: return "red";
-                }
+            badgeIcon() {
+                return this.helper.getIcon();
+            },
+            badgeColor() {
+                return this.helper.getColor();
             }
         }
     };

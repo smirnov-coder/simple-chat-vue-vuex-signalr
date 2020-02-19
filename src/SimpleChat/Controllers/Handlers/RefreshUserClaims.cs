@@ -11,7 +11,12 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class RefreshUserClaims : Handler
+    /// <summary>
+    /// Представляет собой процесс обновления полного имени и аватара пользователя, которые хранятся в виде клаймов в
+    /// хранилище.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class RefreshUserClaims : HandlerBase
     {
         private UserManager<IdentityUser> _userManager;
         private IdentityUserValidator _identityUserValidator;
@@ -20,6 +25,7 @@ namespace SimpleChat.Controllers.Handlers
         private NameClaimTypeValidator _nameClaimTypeValidator;
         private AvatarClaimTypeValidator _avatarClaimTypeValidator;
 
+        #region Constructors
         public RefreshUserClaims(
             UserManager<IdentityUser> userManager,
             IdentityUserValidator identityUserValidator,
@@ -53,34 +59,41 @@ namespace SimpleChat.Controllers.Handlers
                   avatarClaimTypeValidator, null)
         {
         }
+        #endregion
 
         protected override bool CanHandle(IContext context)
         {
-            bool isIdentityUserValid = _identityUserValidator.Validate(context, _errors);
-            bool isUserClaimsValid = _userClaimsValidator.Validate(context, _errors);
-            bool isUserInfoValid = _userInfoValidator.Validate(context, _errors);
-            bool isNameClaimTypeValid = _nameClaimTypeValidator.Validate(context, _errors);
-            bool isAvatarClaimTypeValid = _avatarClaimTypeValidator.Validate(context, _errors);
-            return isIdentityUserValid
-                && isUserClaimsValid
-                && isUserInfoValid
-                && isNameClaimTypeValid
-                && isAvatarClaimTypeValid;
+            bool canUseIdentityUser = _identityUserValidator.Validate(context, _errors);
+            bool canUseUserClaims = _userClaimsValidator.Validate(context, _errors);
+            bool canUseUserInfo = _userInfoValidator.Validate(context, _errors);
+            bool canUseNameClaimType = _nameClaimTypeValidator.Validate(context, _errors);
+            bool canUseAvatarClaimType = _avatarClaimTypeValidator.Validate(context, _errors);
+            return canUseIdentityUser
+                && canUseUserClaims
+                && canUseUserInfo
+                && canUseNameClaimType
+                && canUseAvatarClaimType;
         }
 
         protected override async Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста информацию о пользователе, коллекцию клаймов пользователя, тип клаймов полного имени
+            // и аватара пользователя.
             var identityUser = context.Get(IdentityUserValidator.ContextKey) as IdentityUser;
             var userClaims = context.Get(UserClaimsValidator.ContextKey) as IList<Claim>;
             var userInfo = context.Get(UserInfoValidator.ContextKey) as ExternalUserInfo;
             var nameClaimType = context.Get(NameClaimTypeValidator.ContextKey) as string;
             var avatarClaimType = context.Get(AvatarClaimTypeValidator.ContextKey) as string;
 
+            // Обновить полное имя пользователя, полученное от внешнего провайдера.
             await _userManager.ReplaceClaimAsync(identityUser, userClaims.First(claim => claim.Type == nameClaimType),
                 new Claim(nameClaimType, userInfo.Name));
+
+            // Обновить аватар пользователя.
             await _userManager.ReplaceClaimAsync(identityUser, userClaims.First(claim => claim.Type == avatarClaimType),
                 new Claim(avatarClaimType, userInfo.Picture));
 
+            // Передать управление следующему обработчику, вернув null.
             return default(IAuthResult);
         }
     }

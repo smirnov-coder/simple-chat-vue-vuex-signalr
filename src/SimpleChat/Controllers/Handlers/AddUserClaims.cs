@@ -11,7 +11,12 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class AddUserClaims : Handler
+    /// <summary>
+    /// Представляет собой процесс сохранения информации о пользователе внешнего OAuth2-провайдера (полное имя,
+    /// фотограция профайла, маркер доступа к API) в виде клаймов Identity-пользователя.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class AddUserClaims : HandlerBase
     {
         private UserManager<IdentityUser> _userManager;
         private IdentityUserValidator _identityUserValidator;
@@ -56,26 +61,30 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override bool CanHandle(IContext context)
         {
-            bool isIdentityUserValid = _identityUserValidator.Validate(context, _errors);
-            bool isUserInfoValid = _userInfoValidator.Validate(context, _errors);
-            bool isNameClaimTypeValid = _nameClaimTypeValidator.Validate(context, _errors);
-            bool isAvatarClaimTypeValid = _avatarClaimTypeValidator.Validate(context, _errors);
-            bool isAccessTokeClaimTypeValid = _accessTokenClaimTypeValidator.Validate(context, _errors);
-            return isIdentityUserValid
-                && isUserInfoValid
-                && isNameClaimTypeValid
-                && isAvatarClaimTypeValid
-                && isAccessTokeClaimTypeValid;
+            bool canUseIdentityUser = _identityUserValidator.Validate(context, _errors);
+            bool canUseUserInfo = _userInfoValidator.Validate(context, _errors);
+            bool canUseNameClaimType = _nameClaimTypeValidator.Validate(context, _errors);
+            bool canUseAvatarClaimType = _avatarClaimTypeValidator.Validate(context, _errors);
+            bool canUseAccessTokeClaimType = _accessTokenClaimTypeValidator.Validate(context, _errors);
+            return canUseIdentityUser
+                && canUseUserInfo
+                && canUseNameClaimType
+                && canUseAvatarClaimType
+                && canUseAccessTokeClaimType;
         }
 
         protected override async Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста информацию о пользователе, типы клаймов имени пользователя, аватара и маркера
+            // доступа.
             var identityUser = context.Get(IdentityUserValidator.ContextKey) as IdentityUser;
             var userInfo = context.Get(UserInfoValidator.ContextKey) as ExternalUserInfo;
             string nameClaimType = context.Get(NameClaimTypeValidator.ContextKey) as string;
             string avatarClaimType = context.Get(AvatarClaimTypeValidator.ContextKey) as string;
             string accessTokenClaimType = context.Get(AccessTokenClaimTypeValidator.ContextKey) as string;
 
+            // Создать новые клаймы (полное имя пользователя, аватара, маркер доступа) для внешнего
+            // OAuth2-провайдера и выполнить попытку добавить клаймы в коллекцию клаймов.
             IAuthResult result = null;
             IdentityResult addClaimsResult = await _userManager.AddClaimsAsync(identityUser, new List<Claim>
             {
@@ -83,11 +92,15 @@ namespace SimpleChat.Controllers.Handlers
                 new Claim(avatarClaimType, userInfo.Picture),
                 new Claim(accessTokenClaimType, userInfo.AccessToken)
             });
+
+            // Если попытка неудачна, то прервать цепочку обработчиков и вернуть сообщение об ошибке.
             if (!addClaimsResult.Succeeded)
             {
                 result = new ErrorResult($"Не удалось сохранить данные '{userInfo.Provider}' профайла пользователя " +
                     $"'{userInfo.Name}'.", addClaimsResult.Errors.Select(error => error.Description));
             }
+
+            // Иначе продолжить выполнение цепочки без добавления каких-либо данных в контекст.
             return result;
         }
     }

@@ -1,7 +1,8 @@
 <template>
     <v-navigation-drawer drawer
                          :mini-variant="mini"
-                         permanent>
+                         permanent
+                         class="drawer">
         <user-info :mini="mini"
                    @collapseButtonClick="raiseSizeChanged($event)">
         </user-info>
@@ -32,3 +33,10 @@
         }
     };
 </script>
+
+<style>
+    .drawer {
+        display: flex !important;
+        flex-direction: column;
+    }
+</style>

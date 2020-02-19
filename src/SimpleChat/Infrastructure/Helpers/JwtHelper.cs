@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="IJwtHelper"/>
     public class JwtHelper : IJwtHelper
     {
         private JwtOptions _options;

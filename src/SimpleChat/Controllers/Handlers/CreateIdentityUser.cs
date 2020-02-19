@@ -10,12 +10,17 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class CreateIdentityUserIfNotExist : Handler
+    /// <summary>
+    /// Представляет собой процесс создания нового Identity-пользователя.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class CreateIdentityUserIfNotExist : HandlerBase
     {
         private UserManager<IdentityUser> _userManager;
         private NullableIdentityUserValidator _nullableIdentityUserValidator;
         private UserInfoValidator _userInfoValidator;
 
+        #region Constructors
         public CreateIdentityUserIfNotExist(
             UserManager<IdentityUser> userManager,
             NullableIdentityUserValidator nullableIdentityUserValidator,
@@ -35,22 +40,27 @@ namespace SimpleChat.Controllers.Handlers
                 nameof(nullableIdentityUserValidator));
             _userInfoValidator = _guard.EnsureObjectParamIsNotNull(userInfoValidator, nameof(userInfoValidator));
         }
+        #endregion
 
         protected override bool CanHandle(IContext context)
         {
-            bool isNullableIdentityUserValid = _nullableIdentityUserValidator.Validate(context, _errors);
-            bool isUserInfoValid = _userInfoValidator.Validate(context, _errors);
-            return isNullableIdentityUserValid && isUserInfoValid;
+            bool canUseNullableIdentityUser = _nullableIdentityUserValidator.Validate(context, _errors);
+            bool canUseUserInfo = _userInfoValidator.Validate(context, _errors);
+            return canUseNullableIdentityUser && canUseUserInfo;
         }
 
         protected override async Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста информацию о пользователе.
             var identityUser = context.Get(NullableIdentityUserValidator.ContextKey) as IdentityUser;
             var userInfo = context.Get(UserInfoValidator.ContextKey) as ExternalUserInfo;
 
+            // Если информация о текущем Identity-пользователе пуста, то...
             IAuthResult result = null;
             if (identityUser == null)
             {
+                // ... попытаться создать нового Identity-пользователя на основе данных о пользователе внешнего
+                // OAuth2-провайдера.
                 var newUser = new IdentityUser
                 {
                     UserName = userInfo.Email,
@@ -58,17 +68,22 @@ namespace SimpleChat.Controllers.Handlers
                     EmailConfirmed = true
                 };
                 IdentityResult createUserResult = await _userManager.CreateAsync(newUser);
+
+                // Если попытка создания удачна, то сохранить данные о Identity-пользователе в контексте.
                 if (createUserResult.Succeeded)
                 {
                     identityUser = await _userManager.FindByNameAsync(userInfo.Email);
                     context.Set(IdentityUserValidator.ContextKey, identityUser);
                 }
+                // Иначе прервать цепочку обработчиков и вернуть сообщение об ошибке.
                 else
                 {
                     result = new ErrorResult($"Не удалось зарегистрировать пользователя '{userInfo.Name}'.",
                         createUserResult.Errors.Select(error => error.Description));
                 }
             }
+
+            // Передать управление следующему обработчику, вернув null.
             return result;
         }
     }

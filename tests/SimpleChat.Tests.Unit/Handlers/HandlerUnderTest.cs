@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Tests.Unit.Handlers
 {
-    internal class HandlerUnderTest : Handler
+    internal class HandlerUnderTest : HandlerBase
     {
         public HandlerUnderTest(IGuard guard) : base(guard)
         {

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using SimpleChat.Infrastructure.Constants;
@@ -14,16 +13,19 @@ using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
+    /// <inheritdoc cref="IFacebookOAuth2Service"/>
     public class FacebookOAuth2Service : OAuth2ServiceBase, IFacebookOAuth2Service
     {
         private const string AccessTokenEndpoint = "https://graph.facebook.com/v3.3/oauth/access_token";
         private const string UserInfoEndpoint = "https://graph.facebook.com/me";
 
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
         public FacebookOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
             : this(configuration, uriHelper, null, null)
         {
         }
 
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
         public FacebookOAuth2Service(
             IConfiguration configuration,
             IUriHelper uriHelper,
@@ -45,6 +47,11 @@ namespace SimpleChat.Services
             });
             return new HttpRequestMessage(HttpMethod.Get, requestUri);
         }
+
+        //
+        // https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling
+        // https://developers.facebook.com/docs/facebook-login/access-tokens/debugging-and-error-handling
+        //
 
         protected override bool IsErrorAccessTokenResponse(JObject parsedResponse)
         {
@@ -85,10 +92,15 @@ namespace SimpleChat.Services
             await ExchangeShortLivedAccessTokenAsync((string)accessTokenResponse["access_token"]);
         }
 
+        /// <summary>
+        /// Асинхронно выполняет обмен краткосрочного маркера доступа на долгосрочный.
+        /// </summary>
+        /// <param name="accessToken">Красткосрочный маркер доступа.</param>
         private async Task ExchangeShortLivedAccessTokenAsync(string accessToken)
         {
             _guard.EnsureStringParamIsNotNullOrEmpty(accessToken, nameof(accessToken));
 
+            // Сформировать uri запроса и выполнить запрос.
             string requestUri = _uriHelper.AddQueryString(AccessTokenEndpoint, new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
@@ -97,15 +109,17 @@ namespace SimpleChat.Services
                 ["fb_exchange_token"] = accessToken,
                 ["access_token"] = accessToken
             });
-            var response = await HttpClient.SendAsync(
-                new HttpRequestMessage(HttpMethod.Get, requestUri), default(CancellationToken));
+            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri),
+                default(CancellationToken));
 
+            // Проверить, нет ли ошибки подключения.
             if (await IsConnectionErrorResponseAsync(response))
             {
-                throw new OAuth2ServiceException($"Не удалось подключиться к '{_providerName}' для обмена " +
+                throw new OAuth2ServiceException($"Не удалось подключиться к '{_provider}' для обмена " +
                     $"краткосрочного маркера доступа на долгосрочный.");
             }
 
+            // Проверить, успешно ли выполнен обмен краткосрочного маркера доступа.
             string json = await response.Content.ReadAsStringAsync();
             var exchangeTokenResponse = _jsonHelper.Parse(json);
             if (IsErrorAccessTokenResponse(exchangeTokenResponse))
@@ -114,6 +128,7 @@ namespace SimpleChat.Services
                     exchangeTokenResponse);
             }
 
+            // Сохранить полученный долгосрочный маркер доступа в свойстве.
             AccessToken = (string)exchangeTokenResponse["access_token"];
         }
 
@@ -136,14 +151,9 @@ namespace SimpleChat.Services
                 Email = (string)userInfoResponse["email"],
                 AccessToken = AccessToken,
                 Picture = (string)userInfoResponse["picture"]["data"]["url"],
-                Provider = _providerName
+                Provider = _provider
             };
             return Task.CompletedTask;
         }
     }
-
-    //
-    // https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling
-    // https://developers.facebook.com/docs/facebook-login/access-tokens/debugging-and-error-handling
-    //
 }

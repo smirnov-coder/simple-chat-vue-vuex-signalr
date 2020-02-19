@@ -136,7 +136,7 @@ namespace SimpleChat.Tests.Unit.Services
             mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(clientIdKey, "clientIdKey"), Times.Once());
             mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(clientSecretKey, "clientSecretKey"),
                 Times.Once());
-            mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(providerName, "providerName"), Times.Once());
+            mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(providerName, "provider"), Times.Once());
             mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(clientId, "ClientId"), Times.Once());
             mockGuard.Verify(x => x.EnsureStringParamIsNotNullOrEmpty(clientSecret, "ClientSecret"), Times.Once());
             mockGuard.Verify(x => x.EnsureObjectParamIsNotNull(mockConfiguration.Object, "configuration"),

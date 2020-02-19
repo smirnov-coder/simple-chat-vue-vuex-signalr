@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -40,7 +37,7 @@ namespace SimpleChat.Controllers
             return await _authenticationFlow.RunAsync(context);
         }
 
-        protected virtual ClaimsPrincipal GetCurrentUser() => User;
+        protected virtual ClaimsPrincipal GetCurrentUser() => this.User;
 
         //
         // GET /auth/sign-in/facebook

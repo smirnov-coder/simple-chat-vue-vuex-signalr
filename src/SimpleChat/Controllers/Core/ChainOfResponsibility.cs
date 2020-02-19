@@ -8,17 +8,22 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Core
 {
+    /// <inheritdoc cref="IChainOfResponsibility"/>
     public class ChainOfResponsibility : IChainOfResponsibility
     {
         protected List<IHandler> _handlers;
         protected IGuard _guard;
+
+        public ChainOfResponsibility() : this(null)
+        {
+        }
 
         public ChainOfResponsibility(IGuard guard = null)
         {
             _guard = guard ?? new Guard();
             _handlers = new List<IHandler>();
         }
-
+        
         public virtual void AddHandler(IHandler handler)
         {
             _guard.EnsureObjectParamIsNotNull(handler, nameof(handler));
@@ -27,7 +32,7 @@ namespace SimpleChat.Controllers.Core
                 _handlers.Last().Next = handler;
             _handlers.Add(handler);
         }
-
+        
         public virtual async Task<IAuthResult> RunAsync(IContext context)
         {
             _guard.EnsureObjectParamIsNotNull(context, nameof(context));

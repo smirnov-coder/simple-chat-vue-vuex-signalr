@@ -1,14 +1,11 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="IUriHelper"/>
     public class UriHelper : IUriHelper
     {
         private IHttpContextAccessor _httpContextAccessor;

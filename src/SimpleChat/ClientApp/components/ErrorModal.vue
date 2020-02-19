@@ -23,7 +23,7 @@
 </template>
 
 <script>
-    import { ActionTypes, GetterTypes } from "@/store/constants";
+    import { ActionTypes, GetterTypes } from "@/scripts/constants";
 
     export default {
         data() {

@@ -1,12 +1,14 @@
 using SimpleChat.Controllers.Core;
-using SimpleChat.Infrastructure.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Validators
 {
+    /// <summary>
+    /// Инкапсулирует логику проверки пригодности для использования информации о Identity-пользователе, хранящейся в
+    /// контексте <see cref="IContext"/>. Валидатор допускает значение null.
+    /// </summary>
     public class NullableIdentityUserValidator : IdentityUserValidator
     {
         public override bool Validate(IContext context, ICollection<string> errors)

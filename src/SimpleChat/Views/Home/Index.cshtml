@@ -1,10 +1,12 @@
-@inject Microsoft.Extensions.Configuration.IConfiguration configuration
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration configuration
+@using SimpleChat.Controllers
 @{ 
     Layout = null;
     string
         protocol = Context?.Request?.Scheme,
         host = Context?.Request?.Host.Value,
-        domain = $"{protocol}://{host}";
+        domain = $"{protocol}://{host}",
+        controller = "Auth";
 }
 <!DOCTYPE html>
 <html lang="ru">
@@ -16,7 +18,7 @@
     <link rel="icon" type="image/png" sizes="32x32" asp-href-include="~/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" asp-href-include="~/favicon-16x16.png" />
     <link rel="manifest" asp-href-include="~/site.webmanifest" />
-    @* Шрифт Roboto *@
+    @* Подключение веб-шрифта Roboto. *@
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
     <environment exclude="Development">
         <link asp-href-exclude="~/css/vendor.bundle.min.css" />
@@ -24,36 +26,50 @@
     </environment>
 </head>
 <body>
+    @* Глобальные переменные JavaScript, зависящие от серверной стороны. *@
     <script type="text/javascript">
         if (typeof window != "undefined" && !window.globals) {
             window.globals = {
-                domain: "@domain",
+                @* Параметры "Facebook". *@
                 Facebook: {
-                    clientId: "@configuration["Authentication:Facebook:AppId"]",
-                    redirectUri: "@Url?.Action("SignInWithFacebookAsync", "Auth", null, protocol, host)?.ToLower()",
+                    clientId: "@configuration[ConfigurationKeys.FacebookAppId]",
+                    redirectUri: "@Url?.Action(nameof(AuthController.SignInWithFacebookAsync), controller, null,
+                        protocol, host)?.ToLower()",
                     authorizeEndpoint: "https://www.facebook.com/v3.3/dialog/oauth",
                     scope: "public_profile,email",
                     state: "@ExternalProvider.Facebook",
                 },
+
+                @* Параметры "ВКонтакте". *@
                 VKontakte: {
-                    clientId: "@configuration["Authentication:VKontakte:ClientId"]",
-                    redirectUri: "@Url?.Action("SignInWithVKontakteAsync", "Auth", null, protocol, host)?.ToLower()",
+                    clientId: "@configuration[ConfigurationKeys.VKontakteClientId]",
+                    redirectUri: "@Url?.Action(nameof(AuthController.SignInWithVKontakteAsync), controller, null,
+                        protocol, host)?.ToLower()",
                     authorizeEndpoint: "https://oauth.vk.com/authorize",
                     scope: "offline,email",
                     state: "@Html.Raw(ExternalProvider.VKontakte)",
                     apiVersion: "5.101"
                 },
+
+                @* Параметры "Одноклассники". *@
                 Odnoklassniki: {
-                    clientId: "@configuration["Authentication:Odnoklassniki:ApplicationId"]",
-                    redirectUri: "@Url?.Action("SignInWithOdnoklassnikiAsync", "Auth", null, protocol, host)?.ToLower()",
+                    clientId: "@configuration[ConfigurationKeys.OdnoklassnikiApplicationId]",
+                    redirectUri: "@Url?.Action(nameof(AuthController.SignInWithOdnoklassnikiAsync), controller, null,
+                        protocol, host)?.ToLower()",
                     authorizeEndpoint: "https://connect.ok.ru/oauth/authorize",
                     scope: "VALUABLE_ACCESS;LONG_ACCESS_TOKEN;GET_EMAIL",
                     state: "@Html.Raw(ExternalProvider.Odnoklassniki)",
-                }
+                },
+
+                @* Общие параметры. *@
+                domain: "@domain",
+                authenticateEndpoint: "@Url.Action(nameof(AuthController.AuthenticateAsync), controller).ToLower()",
+                confirmSignInEndpoint: "@Url.Action(nameof(AuthController.ConfirmSigInAsync), controller).ToLower()"
             };
         }
     </script>
 
+    @* Точка монтирования Vue-приложения. *@
     <div id="app"></div>
 
     <environment include="Development">

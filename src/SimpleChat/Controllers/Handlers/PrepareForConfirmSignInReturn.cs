@@ -8,7 +8,12 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class PrepareForConfirmSignInReturn : Handler
+    /// <summary>
+    /// Представляет собой процесс подготовки к успешному завершению подтверждения входа на сайт через внешний
+    /// OAuth2-провайдер.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class PrepareForConfirmSignInReturn : HandlerBase
     {
         private ISessionHelper _sessionHelper;
 
@@ -28,7 +33,10 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Очистить данные сессии пользователя за ненадобностью.
             _sessionHelper.ClearSession();
+
+            // Передать управление следующему обработчику, вернув null.
             return Task.FromResult(default(IAuthResult));
         }
     }

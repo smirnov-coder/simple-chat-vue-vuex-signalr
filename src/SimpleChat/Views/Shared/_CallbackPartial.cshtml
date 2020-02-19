@@ -16,6 +16,12 @@
         }
     });
 }
+
+@*
+    В ответ на вызов внешним OAuth2-провайдером callback-метода согласно алгоритму Authorization Code Flow, отправляем
+    короткий JavaScript код, который закрывает popup-окно входа через внешний провайдер и передаёт результат операции
+    в виде JSON родительскому окну браузера.
+*@
 <script type="text/javascript">
     (function () {
         if (window.opener) {

@@ -13,7 +13,12 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class ConfigureOAuth2ServiceForSignIn : Handler
+    /// <summary>
+    /// Представляет собой процесс предварительной настройки OAuth2-сервиса для выполнения запросов к API внешнего
+    /// OAuth2-провайдера в ходе выполнения входа на сайт.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class ConfigureOAuth2ServiceForSignIn : HandlerBase
     {
         private ProviderValidator _providerValidator;
         private IOAuth2Service _facebook;
@@ -53,8 +58,12 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста имя провайдера, через который пользователь осуществляет вход на сайт.
             string provider = context.Get(ProviderValidator.ContextKey) as string;
 
+            // В зависимости от текущего провайдера, определить имя метода AuthController, задаваемого в качестве
+            // обратного вызова для внешнего OAuth2-провайдера, а также OAuth2-сервис, для выполнения запросов к
+            // внешнему провайдеру.
             string actionName = string.Empty;
             IOAuth2Service service = null;
 
@@ -80,8 +89,14 @@ namespace SimpleChat.Controllers.Handlers
                         $"Значение: {provider}."));
             }
 
+            // Адрес, по которому внешний провайдер будет осуществлять callback-вызов, должен быть полным, включая
+            // протокол и домен.
             service.RedirectUri = _uriHelper.GetControllerActionUri("Auth", actionName);
+
+            // Сохранить настроенный OAuth2-сервис в контексте.
             context.Set(OAuth2ServiceValidator.ContextKey, service);
+
+            // Передать управление следующему обработчику в цепочке, вернув null.
             return Task.FromResult(default(IAuthResult));
         }
     }

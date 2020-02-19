@@ -6,8 +6,13 @@ using System.Security.Claims;
 
 namespace SimpleChat.Controllers.Validators
 {
+    /// <summary>
+    /// Инкапсулирует логику проверки пригодности для использования коллекции клаймов пользователя, хранящейся в
+    /// контексте <see cref="IContext"/>.
+    /// </summary>
     public class UserClaimsValidator : ObjectValidator<IList<Claim>>
     {
+        /// <inheritdoc cref="ValidatorBase._key"/>
         public const string ContextKey = "userClaims";
 
         public UserClaimsValidator() : this(null)

@@ -1,6 +1,7 @@
+import { mapKeyToValue } from "@/scripts/utils";
+
 export const MutationTypes = mapKeyToValue({
-    SET_CONNECTION: null,
-    CLEAR_CONNECTION: null,
+    SET_CLIENT: null,
     SET_IS_AUTHENTICATED: null,
     CLEAR_MESSAGES_STATE: null,
     ADD_MESSAGE: null,
@@ -14,9 +15,9 @@ export const MutationTypes = mapKeyToValue({
     ADD_USER_CONNECTION: null,
     REMOVE_CURRENT_USER_CONNECTION: null,
     REMOVE_USER_CONNECTION: null,
-    SET_CONFIRM_DATA: null,
+    SET_CONFIRMATION_DATA: null,
     CLEAR_AUTH_STATE: null,
-    SET_ERROR: null,
+    SET_ERROR: null
 });
 
 export const ActionTypes = mapKeyToValue({
@@ -33,10 +34,10 @@ export const ActionTypes = mapKeyToValue({
     SIGN_OUT: null,
     REDUCE_MESSAGES: null,
     NEW_USER_CONNECTION: null,
-    SIGN_IN_RESULT: null,
-    SIGN_IN_CANCELED: null,
-    SIGN_IN_CONFIRMED: null,
-    ERROR_HANDLED: null,
+    SIGN_IN: null,
+    CANCEL_SIGN_IN: null,
+    CONFIRM_SIGN_IN: null,
+    ERROR_HANDLED: null
 });
 
 export const GetterTypes = mapKeyToValue({
@@ -45,11 +46,11 @@ export const GetterTypes = mapKeyToValue({
     USERS: null,
     CURRENT_USER: null,
     ERROR: null,
-    CONFIRM_DATA: null,
+    CONFIRMATION_DATA: null
 });
 
 export const HubMethodNames = {
-    SEND_MESSAGE: "SendMessage",
+    SEND_MESSAGE: "SendMessage"
 };
 
 export const HubClientMethodNames = {
@@ -58,13 +59,16 @@ export const HubClientMethodNames = {
     CONNECTED_USERS: "ConnectedUsers",
     DISCONNECTED_USER: "DisconnectedUser",
     NEW_USER_CONNECTION: "NewUserConnection",
-    FORCE_SIGN_OUT: "ForceSignOut",
+    FORCE_SIGN_OUT: "ForceSignOut"
 };
-/// TODO: перенести в utils
-function mapKeyToValue(obj) {
-    let result = {};
-    Object.keys(obj).map(key => {
-        result[key] = key;
-    });
-    return result;
-}
+
+export const AuthResultTypes = mapKeyToValue({
+    ERROR: null,
+    EXTERNAL_LOGIN_ERROR: null,
+    CONFIRM_SIGN_IN: null,
+    SUCCESS: null,
+    EMAIL_REQUIRED: null,
+    AUTH_CHECK: null
+}, true);
+
+export const MESSAGES_MAX_LENGTH = 100;

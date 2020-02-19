@@ -5,6 +5,10 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Infrastructure.Constants
 {
+    /// <summary>
+    /// Содержит значения ключей в виде строковых констант, по которым в файле настроек приложения (appsettings.json)
+    /// доступны различные параметры доступа к API внешних OAuth2-провайдеров, используемых в приложении.
+    /// </summary>
     public static class ConfigurationKeys
     {
         public const string FacebookAppId = "Authentication:Facebook:AppId";

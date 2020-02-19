@@ -79,7 +79,7 @@ namespace SimpleChat.Tests.Unit.Handlers
             // arrange
             IContext testContext = _contextBuilder.WithProvider(provider).Build();
             var mockAuthResult = new Mock<IAuthResult>();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             mockHandler.Setup(x => x.HandleAsync(It.IsAny<IContext>())).ReturnsAsync(mockAuthResult.Object);
             _mockProviderValidator.Setup(x => x.Validate(testContext, It.IsAny<ICollection<string>>()))
                 .Returns(true);
@@ -135,7 +135,7 @@ namespace SimpleChat.Tests.Unit.Handlers
             // arrange
             string testError = "test_error";
             IContext testContext = _contextBuilder.Build();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             _mockProviderValidator.Setup(x => x.Validate(testContext, It.IsAny<ICollection<string>>()))
                 .Callback(new Action<IContext, ICollection<string>>(
                     (IContext context, ICollection<string> errors) => errors.Add(testError)))
@@ -155,7 +155,7 @@ namespace SimpleChat.Tests.Unit.Handlers
         {
             // arrange
             IContext testContext = _contextBuilder.WithProvider(TestConstants.TestProvider).Build();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             _mockProviderValidator.Setup(x => x.Validate(testContext, It.IsAny<ICollection<string>>()))
                 .Returns(true);
             _target.Next = mockHandler.Object;

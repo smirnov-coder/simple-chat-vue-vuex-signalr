@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="IMD5Hasher"/>
     public class MD5Hasher : IMD5Hasher
     {
         private IGuard _guard;

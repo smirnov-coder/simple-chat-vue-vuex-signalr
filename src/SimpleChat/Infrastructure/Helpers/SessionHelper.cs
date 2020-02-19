@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="ISessionHelper"/>
     public class SessionHelper : ISessionHelper
     {
         private IGuard _guard;

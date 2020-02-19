@@ -8,7 +8,7 @@
 
 <script>
     import MessageItem from "@/components/MessageItem";
-    import { GetterTypes } from "@/store/constants";
+    import { GetterTypes } from "@/scripts/constants";
 
     export default {
         computed: {

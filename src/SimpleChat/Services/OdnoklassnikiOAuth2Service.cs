@@ -11,6 +11,7 @@ using SimpleChat.Infrastructure.Helpers;
 
 namespace SimpleChat.Services
 {
+    /// <inheritdoc cref="IOdnoklassnikiOAuth2Service"/>
     public class OdnoklassnikiOAuth2Service : OAuth2ServiceBase, IOdnoklassnikiOAuth2Service
     {
         private readonly string _publicKey;
@@ -18,17 +19,22 @@ namespace SimpleChat.Services
         private const string UserInfoEndpoint = "https://api.ok.ru/api/users/getCurrentUser";
 
         private IMD5Hasher _md5Hasher = new MD5Hasher();
+        /// <summary>
+        /// Компонент для работы с MD5.
+        /// </summary>
         public IMD5Hasher MD5Hasher
         {
             get => _md5Hasher;
             set => _md5Hasher = _guard.EnsureObjectParamIsNotNull(value, nameof(MD5Hasher));
         }
 
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
         public OdnoklassnikiOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
             : this(configuration, uriHelper, null, null)
         {
         }
 
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
         public OdnoklassnikiOAuth2Service(
             IConfiguration configuration,
             IUriHelper uriHelper,
@@ -123,7 +129,7 @@ namespace SimpleChat.Services
                 Email = (string)userInfoResponse["email"],
                 AccessToken = AccessToken,
                 Picture = (string)userInfoResponse["pic50x50"],
-                Provider = _providerName
+                Provider = _provider
             };
             return Task.CompletedTask;
         }

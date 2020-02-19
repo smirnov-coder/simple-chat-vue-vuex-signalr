@@ -30,9 +30,9 @@
         "webpack-bundle-analyzer": "3.3.2",
         "@mdi/font": "3.8.95",
         "faker": "4.1.0",
-        "@types/faker": "4.1.5",
         "@babel/core": "7.4.5",
         "@babel/preset-env": "7.4.5",
+        "@babel/plugin-proposal-class-properties": "7.8.3",
         "babel-loader": "8.0.6",
         "vue-style-loader": "4.1.2",
         "uglifyjs-webpack-plugin": "2.1.3"

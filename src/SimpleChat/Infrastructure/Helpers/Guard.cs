@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="IGuard"/>
     public class Guard : IGuard
     {
         public T EnsureObjectParamIsNotNull<T>(T value, string paramName)

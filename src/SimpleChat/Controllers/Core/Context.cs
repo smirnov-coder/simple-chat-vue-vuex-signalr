@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Core
 {
+    /// <inheritdoc cref="IContext"/>
     public class Context : IContext
     {
         private Dictionary<string, object> _collection;

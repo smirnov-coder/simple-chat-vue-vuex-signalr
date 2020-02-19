@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SimpleChat.Infrastructure.Helpers
 {
+    /// <inheritdoc cref="IJsonHelper"/>
     public class JsonHelper : IJsonHelper
     {
         private IGuard _guard;

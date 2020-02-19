@@ -1,13 +1,15 @@
 <template>
     <v-card height="100%">
         <v-layout fill-height column>
-            <slot name="header"></slot>
-            <v-layout>
+            <v-flex shrink>
+                <slot name="header"></slot>
+            </v-flex>
+            <v-layout grow>
                 <v-flex shrink>
                     <slot name="aside"></slot>
                 </v-flex>
                 <v-layout column>
-                    <v-flex ref="container" grow class="pt-2 chat-layout__top-content">
+                    <v-flex ref="container" grow class="chat-layout__top-content pt-2">
                         <slot name="top-content"></slot>
                     </v-flex>
                     <v-divider light />
@@ -16,13 +18,15 @@
                     </v-flex>
                 </v-layout>
             </v-layout>
-            <slot name="footer"></slot>
+            <v-flex shrink>
+                <slot name="footer"></slot>
+            </v-flex>
         </v-layout>
     </v-card>
 </template>
 
 <script>
-    import { MutationTypes } from "@/store/constants";
+    import { MutationTypes } from "@/scripts/constants";
 
     export default {
         data() {

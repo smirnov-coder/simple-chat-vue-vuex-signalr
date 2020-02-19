@@ -51,7 +51,7 @@ namespace SimpleChat.Tests.Unit.Handlers
             mockOAuth2Service.Setup(x => x.UserInfo).Returns(testUserInfo);
             IContext testContext = _contextBuilder.WithOAuth2Service(mockOAuth2Service.Object).Build();
             var mockAuthResult = new Mock<IAuthResult>();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             mockHandler.Setup(x => x.HandleAsync(It.IsAny<IContext>())).ReturnsAsync(mockAuthResult.Object);
             _mockValidator.Setup(x => x.Validate(testContext, It.IsAny<ICollection<string>>())).Returns(true);
             _target.Next = mockHandler.Object;
@@ -94,7 +94,7 @@ namespace SimpleChat.Tests.Unit.Handlers
                 testExternalLoginError = "test_external_login_error";
             var mockOAuth2Service = new Mock<IOAuth2Service>();
             IContext testContext = _contextBuilder.WithOAuth2Service(mockOAuth2Service.Object).Build();
-            var mockHandler = new Mock<Handler>();
+            var mockHandler = new Mock<HandlerBase>();
             var exception = new OAuth2ServiceException(testMessage);
             exception.Data.Add("message", testExternalLoginError);
             mockOAuth2Service.Setup(x => x.RequestUserInfoAsync()).ThrowsAsync(exception);

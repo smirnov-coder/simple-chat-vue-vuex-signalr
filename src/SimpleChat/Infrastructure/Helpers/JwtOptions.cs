@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace SimpleChat.Infrastructure.Helpers
 {
     /// <summary>
-    /// Содержит различные параметры для создания и валидации JSON Web Token (JWT).
+    /// Содержит различные параметры для создания и валидации JWT (JSON Web Token).
     /// </summary>
     public class JwtOptions
     {
@@ -32,6 +32,9 @@ namespace SimpleChat.Infrastructure.Helpers
         /// </summary>
         public virtual TimeSpan Lifetime { get; set; }
 
+        /// <summary>
+        /// Параметры JWT по умолчанию.
+        /// </summary>
         public static JwtOptions Default { get; } = new JwtOptions
         {
             Issuer = "SimpleChat",

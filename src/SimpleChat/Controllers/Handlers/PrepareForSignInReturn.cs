@@ -9,7 +9,11 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class PrepareForSignInReturn : Handler
+    /// <summary>
+    /// Представляет собой процесс подготовки к успешному входу на сайт через внешний OAuth2-провайдер.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class PrepareForSignInReturn : HandlerBase
     {
         private SignInManager<IdentityUser> _signInManager;
 
@@ -29,7 +33,11 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override async Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // На всякий случай выполним выход из приложения, чтобы убедиться, что никакие auth-cookie не будут
+            // добавлены к ответу сервера.
             await _signInManager.SignOutAsync();
+
+            // Передать управление следующему обработчику, вернув null.
             return default(IAuthResult);
         }
     }

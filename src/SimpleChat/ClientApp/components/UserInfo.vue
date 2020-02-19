@@ -6,9 +6,10 @@
                      tag="div">
             <!-- Avatar -->
             <v-list-tile-avatar>
-                <v-badge bottom
-                         overlap
-                         class="provider-badge">
+                <v-badge :color="badgeColor"
+                         class="provider-badge"
+                         bottom
+                         overlap>
                     <template v-slot:badge>
                         <v-icon color="white"
                                 class="provider-badge__icon">
@@ -40,8 +41,8 @@
 </template>
 
 <script>
-    import { clearToken } from "@/scripts/utils"
-    import { ActionTypes, GetterTypes } from "@/store/constants";
+    import { ActionTypes, GetterTypes } from "@/scripts/constants";
+    import { ProviderHelper } from "@/scripts/provider-helper";
 
     export default {
         props: {
@@ -54,21 +55,14 @@
             user() {
                 return this.$store.getters[GetterTypes.CURRENT_USER]
             },
-            badgeIcon() {
-                switch (this.user.provider) {
-                    case "Facebook": return "mdi-facebook";
-                    case "ВКонтакте": return "mdi-vk";
-                    case "Одноклассники": return "mdi-odnoklassniki";
-                    default: return "mdi-help";
-                }
+            helper() {
+                return new ProviderHelper(this.user.provider);
             },
-            badgeBgColor() {
-                switch (this.user.provider) {
-                    case "Facebook": return "primary";
-                    case "ВКонтакте": return "primary";
-                    case "Одноклассники": return "orange";
-                    default: return "red";
-                }
+            badgeIcon() {
+                return this.helper.getIcon();
+            },
+            badgeColor() {
+                return this.helper.getColor();
             }
         },
         methods: {
@@ -76,7 +70,6 @@
                 this.$emit("collapseButtonClick", !this.mini);
             },
             signOut() {
-                clearToken();
                 this.$store.dispatch(ActionTypes.SIGN_OUT);
             }
         }

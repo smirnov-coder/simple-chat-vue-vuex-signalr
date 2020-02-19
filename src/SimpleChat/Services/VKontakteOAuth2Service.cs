@@ -11,6 +11,7 @@ using SimpleChat.Models;
 
 namespace SimpleChat.Services
 {
+    /// <inheritdoc cref="IVKontakteOAuth2Service"/>
     public class VKontakteOAuth2Service : OAuth2ServiceBase, IVKontakteOAuth2Service
     {
         private const string AccessTokenEndpoint = "https://oauth.vk.com/access_token";
@@ -27,10 +28,13 @@ namespace SimpleChat.Services
             }
         }
 
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
         public VKontakteOAuth2Service(IConfiguration configuration, IUriHelper uriHelper)
             : this(configuration, uriHelper, null, null)
         {
         }
+
+        /// <inheritdoc cref="OAuth2ServiceBase(string, string, string, IConfiguration, IUriHelper, IJsonHelper, IGuard)"/>
 
         public VKontakteOAuth2Service(
             IConfiguration configuration,
@@ -95,8 +99,15 @@ namespace SimpleChat.Services
 
         protected override Task HandleAccessTokenResponseAsync(JObject accessTokenResponse)
         {
+            // К сожалению, ВКонтакте отдаёт e-mail адрес пользователя только вместе с маркером доступа и никак иначе.
+            // Поэтому надо хранить его между вызовами в закрытом поле.
             _userEmail = (string)accessTokenResponse["email"];
+
+            // Вызвать реализацию свойства AccessToken базового класса, т.к. своя реализация очищает значение e-mail
+            // адреса пользователя при установке значения свойства во избежание присваивания e-mail адреса чужому
+            // пользователю.
             base.AccessToken = (string)accessTokenResponse["access_token"];
+
             return Task.CompletedTask;
         }
 
@@ -128,7 +139,7 @@ namespace SimpleChat.Services
                 Email = _userEmail,
                 AccessToken = AccessToken,
                 Picture = (string)userInfoResponse["response"].First["photo_50"],
-                Provider = _providerName
+                Provider = _provider
             };
             return Task.CompletedTask;
         }

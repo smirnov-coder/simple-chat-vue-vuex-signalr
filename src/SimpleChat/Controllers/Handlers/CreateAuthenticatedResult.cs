@@ -10,7 +10,11 @@ using System.Threading.Tasks;
 
 namespace SimpleChat.Controllers.Handlers
 {
-    public class CreateAuthenticatedResult : Handler
+    /// <summary>
+    /// Представляет собой процесс создания результата успешной аутентификации пользователя.
+    /// </summary>
+    /// <inheritdoc cref="HandlerBase"/>
+    public class CreateAuthenticatedResult : HandlerBase
     {
         private IdentityUserValidator _identityUserValidator;
         private UserInfoValidator _userInfoValidator;
@@ -40,18 +44,21 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override bool CanHandle(IContext context)
         {
-            bool isIdentityUserValid = _identityUserValidator.Validate(context, _errors);
-            bool isUserInfoValid = _userInfoValidator.Validate(context, _errors);
-            bool isPoviderValid = _providerValidator.Validate(context, _errors);
-            return isIdentityUserValid && isUserInfoValid && isPoviderValid;
+            bool canUseIdentityUser = _identityUserValidator.Validate(context, _errors);
+            bool canUseUserInfo = _userInfoValidator.Validate(context, _errors);
+            bool canUsePovider = _providerValidator.Validate(context, _errors);
+            return canUseIdentityUser && canUseUserInfo && canUsePovider;
         }
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
+            // Извлечь из контекста информацию о пользователе и имя внешнего OAuth2-провайдера.
             var identityUser = context.Get(IdentityUserValidator.ContextKey) as IdentityUser;
             var userInfo = context.Get(UserInfoValidator.ContextKey) as ExternalUserInfo;
             var provider = context.Get(ProviderValidator.ContextKey) as string;
 
+            // Сформировать результат успешной аутентификации пользователя. Обработчик в любом случае прерывает цепочку
+            // обработчиков и не передаёт управление дальше, т.е. является терминальным.
             return Task.FromResult<IAuthResult>(new AuthenticatedResult
             {
                 User = new UserInfo

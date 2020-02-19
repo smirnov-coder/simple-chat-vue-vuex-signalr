@@ -25,8 +25,8 @@ module.exports = () => {
             alias: {
                 "vue$": "vue/dist/vue.esm.js",
                 "@": path.resolve(__dirname, "ClientApp")
-            },
-       },
+            }
+        },
         output: {
             path: path.join(__dirname, "wwwroot"),
             filename: `js/[name].bundle${isDevBuild ? "" : ".min"}.js`,
@@ -49,7 +49,8 @@ module.exports = () => {
                     include: path.resolve(__dirname, "ClientApp"),
                     loader: "babel-loader?cacheDirectory=true",
                     options: {
-                        presets: ["@babel/preset-env"]
+                        presets: ["@babel/preset-env"],
+                        plugins: ["@babel/plugin-proposal-class-properties"]
                     }
                 },
                 {
@@ -57,10 +58,17 @@ module.exports = () => {
                     use: [isDevBuild ? "vue-style-loader" : MiniCssExtractPlugin.loader, "css-loader"]
                 },
                 {
-                    test: /\.(woff2?|ttf|otf|eot|svg)$/,
+                    test: /\.(woff2?|ttf|otf|eot)$/,
                     use: {
                         loader: "file-loader",
                         options: { name: "fonts/[name].[ext]" }
+                    }
+                },
+                {
+                    test: /\.svg$/,
+                    use: {
+                        loader: "file-loader",
+                        options: { name: "images/[name].[ext]" }
                     }
                 }
             ]
@@ -74,8 +82,16 @@ module.exports = () => {
                 {
                     from: "./ClientApp/assets/favicon",
                     to: "./"
+                },
+                {
+                    from: "./ClientApp/assets/fonts",
+                    to: "./fonts"
+                },
+                {
+                    from: "./ClientApp/assets/images",
+                    to: "./images"
                 }
-            ]),
+            ])
         ].concat(isDevBuild ? [] : [
             new MiniCssExtractPlugin({
                 filename: "css/[name].bundle.min.css"
@@ -85,7 +101,7 @@ module.exports = () => {
                     preset: [
                         "default",
                         { discardComments: { removeAll: true } }
-                    ],
+                    ]
                 }
             }),
             new UglifyJSPlugin({
@@ -96,7 +112,7 @@ module.exports = () => {
                 analyzerMode: "static",
                 reportFilename: "bundle-report.html",
                 openAnalyzer: false
-            }),
+            })
         ]),
         optimization: {
             //concatenateModules: true,
@@ -111,6 +127,6 @@ module.exports = () => {
                     }
                 }
             }
-        },
+        }
     }];
-}
+};
