@@ -7,7 +7,7 @@
 Используемые при разработке технологии и библиотеки:
 
 - Backend
-  - [ASP.NET Core 2.2 WEb API](https://docs.microsoft.com/en-us/aspnet/core/web-api/)
+  - [ASP.NET Core 2.2 Web API](https://docs.microsoft.com/en-us/aspnet/core/web-api/)
   - [ASP.NET Core 2.2 SignalR](https://docs.microsoft.com/en-us/aspnet/core/signalr/introduction)
   - [ASP.NET Core 2.2 Identity](https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity/)
   - [SQLite](https://www.sqlite.org/) (для упрощения развёртывания)
