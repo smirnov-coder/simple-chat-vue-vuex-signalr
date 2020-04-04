@@ -71,7 +71,6 @@ namespace SimpleChat.Controllers.Handlers
         }
 
         // Сгенерировать под подтверждения. Код должен быть воспроизводимым на серверной стороне.
-        /// TODO: надо бы заменить на какой-нить генератор в виде зависимости
         protected virtual string GenerateConfirmationCode(string userId) => userId.GetHashCode().ToString("x8");
     }
 }

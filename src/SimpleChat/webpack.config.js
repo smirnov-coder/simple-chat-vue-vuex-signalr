@@ -84,10 +84,6 @@ module.exports = () => {
                     to: "./"
                 },
                 {
-                    from: "./ClientApp/assets/fonts",
-                    to: "./fonts"
-                },
-                {
                     from: "./ClientApp/assets/images",
                     to: "./images"
                 }
@@ -115,7 +111,6 @@ module.exports = () => {
             })
         ]),
         optimization: {
-            //concatenateModules: true,
             splitChunks: {
                 chunks: "all",
                 minSize: 0,

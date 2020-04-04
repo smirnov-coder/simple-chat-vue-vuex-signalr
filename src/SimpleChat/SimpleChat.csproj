@@ -6,6 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ClientApp\assets\fonts\**" />
+    <Compile Remove="Data\**" />
+    <Content Remove="ClientApp\assets\fonts\**" />
+    <Content Remove="Data\**" />
+    <EmbeddedResource Remove="ClientApp\assets\fonts\**" />
+    <EmbeddedResource Remove="Data\**" />
+    <None Remove="ClientApp\assets\fonts\**" />
+    <None Remove="Data\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="yarn-error.log" />
   </ItemGroup>
 
@@ -20,8 +31,6 @@
 
   <ItemGroup>
     <Folder Include="ClientApp\assets\favicon\" />
-    <Folder Include="ClientApp\assets\fonts\" />
-    <Folder Include="Data\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
   

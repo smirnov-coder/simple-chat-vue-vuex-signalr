@@ -176,7 +176,6 @@ namespace SimpleChat.Tests.Unit.Handlers
             Assert.Equal(expectedMessage.ToString(), ex.Message);
         }
 
-        /// TODO: должно быть 2^5
         public static IEnumerable<object[]> TestValidationResults()
         {
             return new[]

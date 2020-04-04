@@ -35,9 +35,12 @@ namespace SimpleChat
 
         public void ConfigureServices(IServiceCollection services)
         {
-            string connectionString = Configuration.GetConnectionString("SqliteConnection");
-            connectionString = connectionString.Replace("{DataDirectory}",
-                Path.Combine(Environment.ContentRootPath, "Data"));
+            string
+                connectionString = Configuration.GetConnectionString("SqliteConnection"),
+                dataFolder = Path.Combine(Environment.ContentRootPath, "Data");
+            if (!Directory.Exists(dataFolder))
+                Directory.CreateDirectory(dataFolder);
+            connectionString = connectionString.Replace("{DataDirectory}", dataFolder);
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
@@ -155,7 +158,7 @@ namespace SimpleChat
             services.AddTransient<UserNameValidator>();
 
             if (Environment.IsDevelopment())
-                services.AddTransient<IEmailService, MockEmailService>();
+                services.AddTransient<IEmailService, FakeEmailService>();
             else
                 services.AddTransient<IEmailService, EmailService>();
         }

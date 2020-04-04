@@ -48,18 +48,9 @@ namespace SimpleChat.Controllers.Handlers
 
         protected override Task<IAuthResult> InternalHandleAsync(IContext context)
         {
-            //string
-            //    authorizationCode = context.Get(AuthorizationCodeValidator.ContextKey) as string,
-            //    provider = context.Get(ProviderValidator.ContextKey) as string;
-
-            //IAuthResult result = null;
-            //if (string.IsNullOrWhiteSpace(authorizationCode))
-            //    result = new ErrorResult($"Не удалось получить код авторизации от внешнего провайдера '{provider}'.");
-
             // Ничего не делаем, т.к. наличие и пригодность для использования кода авторизации уже проверил
             // соответствующий валидатор. Просто передаём управление следующему обработчику, вернув null.
             return Task.FromResult(default(IAuthResult));
         }
     }
-    /// TODO: переделать
 }

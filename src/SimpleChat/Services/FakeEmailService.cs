@@ -9,11 +9,11 @@ namespace SimpleChat.Services
     /// <summary>
     /// Заглушка для работы с электронной почтой в режиме разработки.
     /// </summary>
-    public class MockEmailService : EmailService
+    public class FakeEmailService : EmailService
     {
         private readonly string _emailFolder = @"D:\Emails";
 
-        public MockEmailService(IConfiguration configuration) : base(configuration)
+        public FakeEmailService(IConfiguration configuration) : base(configuration)
         {
             if (!Directory.Exists(_emailFolder))
                 Directory.CreateDirectory(_emailFolder);
